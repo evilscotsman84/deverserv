@@ -8,3 +8,13 @@
 [04:31:40][john_smith15] Running recipe.
 [04:36:59][john_smith15] Changing monitor settings.
 [04:37:22][john_smith15] Completed and committed server deploy.
+
+================================================================
+======== txAdmin v7.0.0 atop fxserver 7388 Starting - 01/02/2024, 04:45:25
+================================================================
+[04:46:22][john_smith15] logged in from 127.0.0.1 via cfxre
+[04:47:15][john_smith15] Changing fxRunner settings.
+
+================================================================
+======== txAdmin v7.0.0 atop fxserver 7388 Starting - 01/02/2024, 04:47:45
+================================================================
