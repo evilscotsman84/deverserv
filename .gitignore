@@ -2,3 +2,8 @@
 fx/crashes/fa137da9-5bf1-4ec4-8945-2ba9baab9279.dmp
 *.dmp
 server-files/cache/yarn-cache/v6/npm-yargs-parser-11.1.1-879a0865973bca9f6bab5cbdf3b1c67ec7d3bcf4-integrity/node_modules/yargs-parser/index.js
+txData/default/data/playersDB.json
+txData/default/data/playersDB.backup.json
+txData/default/data/cachedData.json
+README.md
+.gitattributes
