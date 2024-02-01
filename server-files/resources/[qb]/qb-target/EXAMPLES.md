@@ -5,8 +5,8 @@ The config is in the init.lua
 ### All the exports have to be on the client-side to work!
 
 ## AddBoxZone / Job Check
-This is an example setup for a police job. The resource defines a BoxZone around a clipboard in the `gabz_mrpd` MLO.
-It's a simple set-up, we provide a **unique** name, define its center point with the vector3, define a length and a width, and then we define some options; the unique name again, the heading of the box, a bool to display a debug poly, and the height of the zone.
+This is an example setup for a police job. The resource defines a BoxZone around a clipboard in the `gabz_mrpd` MLO. 
+It's a simple set-up, we provide a **unique** name, define its center point with the vector3, define a length and a width, and then we define some options; the unique name again, the heading of the box, a bool to display a debug poly, and the height of the zone. 
 
 Then, in the actual options themselves, we define 'police' as our required job.
 
@@ -27,8 +27,6 @@ exports['qb-target']:AddBoxZone("MissionRowDutyClipboard", vector3(441.7989, -98
 			icon = "fas fa-sign-in-alt",
 			label = "Sign In",
 			job = "police",
-            excludejob = 'ambulance', -- this would exclude ambulance job from seeing this target exact opposite of feature above
-            excludegang = 'ballas', -- this would exclude ballas gang from seeing this target
 		},
 	},
 	distance = 2.5
@@ -85,7 +83,7 @@ citizenid = {
 }
 ```
 
-When defining multiple jobs or gangs, you **must** provide a minimum grade, even if you don't need one. This is due to how key/value tables work. Set the minimum grade to the minimum grade of the job if you want everyone to access it.
+When defining multiple jobs or gangs, you **must** provide a minimum grade, even if you don't need one. This is due to how key/value tables work. Set the minimum grade to the minimum grade of the job if you want everyone to access it. 
 
 ## AddTargetModel / item / canInteract()
 
@@ -163,14 +161,7 @@ This is an example from a postop resource. Players can rent delivery vehicles in
 This is an example using **exports**
 
 ```lua
-local model = `mule2`
-RequestModel(model)
-while not HasModelLoaded(model) do
-    Wait(0)
-end
-local mule = CreateVehicle(model, GetEntityCoords(PlayerPedId()), GetEntityHeading(PlayerPedId()), true, false)
-TaskWarpPedIntoVehicle(PlayerPedId(), mule, -1)
-exports['qb-target']:AddTargetEntity(mule, {
+exports['qb-target']:AddTargetEntity('mule2', {
     options = {
         {
             type = "client",
@@ -184,37 +175,23 @@ exports['qb-target']:AddTargetEntity(mule, {
 })
 ```
 
-## Add interactable Ped at specific coordinates
-This is an example for adding an interactable Ped with a weapon in given coordinates.
-
-The below `Config.Peds` table is located in `init.lua`.
+This is an example using the provided **config**
 
 ```lua
-Config.Peds = {
-    {
-        model = `mp_m_securoguard_01`,
-        coords = vector4(433.0, -985.71, 30.71, 26.92),
-        networked = true,
-        invincible = true,
-        blockevents = true,
-        weapon = {
-            name = `weapon_carbinerifle`,
-            ammo = 0,
-            hidden = false,
-        },
-        target = {
-            options = {
-                {
-                    type = "client",
-                    event = "qb-policejob:ToggleDuty",
-                    icon = "fas fa-sign-in-alt",
-                    label = "Sign In",
-                    job = "police",
-                },
+Config.TargetEntities = {
+    ["entity1"] = {
+        entity = 'mule2',
+        options = {
+            {
+                type = "client",
+                event = "postop:getPackage",
+                icon = "fas fa-box-circle-check",
+                label = "Get Package",
+                job = "postop",
             },
-            distance = 2.5
-        }
-    }
+        },
+        distance = 3.0,
+    },
 }
 ```
 
@@ -226,7 +203,7 @@ This is an example using **exports**
 The event should **not** go into the config, hence why it's not provided with the config example, it's meant for a client file
 
 ```lua
-exports['qb-target']:AddTargetModel(`prop_vend_coffe_01`, {
+exports['qb-target']:AddTargetModel(690372739, {
     options = {
         {
             type = "client",
@@ -250,7 +227,7 @@ This is an example using the provided **config**
 ```lua
 Config.TargetModels = {
     ['buyCoffee'] = {
-        models = `prop_vend_coffe_01`,
+        models = 690372739,
         options = {
             {
                 type = "client",

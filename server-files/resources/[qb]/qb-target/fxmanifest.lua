@@ -1,9 +1,9 @@
+
+
 fx_version 'cerulean'
 game 'gta5'
 
-author 'BerkieB'
-description 'An optimized interaction system for FiveM, based on qtarget'
-version '5.5.0'
+version '5.1.3'
 
 ui_page 'html/index.html'
 
@@ -25,6 +25,5 @@ files {
 }
 
 lua54 'yes'
-use_experimental_fxv2_oal 'yes'
 
 dependency 'PolyZone'

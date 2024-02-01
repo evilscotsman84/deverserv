@@ -1,39 +1,15 @@
-local GetEntityCoords = GetEntityCoords
-local Wait = Wait
-local IsDisabledControlPressed = IsDisabledControlPressed
-local GetEntityBoneIndexByName = GetEntityBoneIndexByName
-local GetWorldPositionOfEntityBone = GetWorldPositionOfEntityBone
-local SetPauseMenuActive = SetPauseMenuActive
-local DisableAllControlActions = DisableAllControlActions
-local EnableControlAction = EnableControlAction
-local NetworkGetEntityIsNetworked = NetworkGetEntityIsNetworked
-local NetworkGetNetworkIdFromEntity = NetworkGetNetworkIdFromEntity
-local GetEntityModel = GetEntityModel
-local IsPedAPlayer = IsPedAPlayer
-local GetEntityType = GetEntityType
-local PlayerPedId = PlayerPedId
-local GetShapeTestResult = GetShapeTestResult
-local StartShapeTestLosProbe = StartShapeTestLosProbe
-local SetDrawOrigin = SetDrawOrigin
-local DrawSprite = DrawSprite
-local ClearDrawOrigin = ClearDrawOrigin
-local HasStreamedTextureDictLoaded = HasStreamedTextureDictLoaded
-local RequestStreamedTextureDict = RequestStreamedTextureDict
-local HasEntityClearLosToEntity = HasEntityClearLosToEntity
-local currentResourceName = GetCurrentResourceName()
+local CurrentResourceName = GetCurrentResourceName()
 local Config, Types, Players, Entities, Models, Zones, nuiData, sendData, sendDistance = Config, {{}, {}, {}}, {}, {}, {}, {}, {}, {}, {}
-local playerPed, targetActive, hasFocus, success, pedsReady, allowTarget = PlayerPedId(), false, false, false, false, true
+local playerPed, targetActive, hasFocus, success, PedsReady, AllowTarget = PlayerPedId(), false, false, false, false, true
 local screen = {}
 local table_wipe = table.wipe
 local pairs = pairs
-local pcall = pcall
-local CheckOptions = CheckOptions
-local Bones = Load('bones')
-local listSprite = {}
+local CheckOptions
+local isTargeting = false
 
 ---------------------------------------
---- Source: https://github.com/citizenfx/lua/blob/luaglm-dev/cfx/libs/scripts/examples/scripting_gta.lua
---- Credits to gottfriedleibniz
+---Source: https://github.com/citizenfx/lua/blob/luaglm-dev/cfx/libs/scripts/examples/scripting_gta.lua
+---Credits to gottfriedleibniz
 local glm = require 'glm'
 
 -- Cache common functions
@@ -48,6 +24,7 @@ local glm_forward = glm.forward()
 local function ScreenPositionToCameraRay()
     local pos = GetFinalRenderedCamCoord()
     local rot = glm_rad(GetFinalRenderedCamRot(2))
+
     local q = glm_quatEuler(rot.z, rot.y, rot.x)
     return pos, glm_rayPicking(
         q * glm_forward,
@@ -63,65 +40,22 @@ end
 
 -- Functions
 
-local function DrawTarget()
-	CreateThread(function()
-		while not HasStreamedTextureDictLoaded("shared") do Wait(10) RequestStreamedTextureDict("shared", true) end
-		local sleep
-		local r, g, b, a
-		while targetActive do
-			sleep = 500
-			for _, zone in pairs(listSprite) do
-				sleep = 0
-
-				r = zone.targetoptions.drawColor?[1] or Config.DrawColor[1]
-				g = zone.targetoptions.drawColor?[2] or Config.DrawColor[2]
-				b = zone.targetoptions.drawColor?[3] or Config.DrawColor[3]
-				a = zone.targetoptions.drawColor?[4] or Config.DrawColor[4]
-
-				if zone.success then
-					r = zone.targetoptions.successDrawColor?[1] or Config.SuccessDrawColor[1]
-					g = zone.targetoptions.successDrawColor?[2] or Config.SuccessDrawColor[2]
-					b = zone.targetoptions.successDrawColor?[3] or Config.SuccessDrawColor[3]
-					a = zone.targetoptions.successDrawColor?[4] or Config.SuccessDrawColor[4]
-				end
-
-				SetDrawOrigin(zone.center.x, zone.center.y, zone.center.z, 0)
-				DrawSprite("shared", "emptydot_32", 0, 0, 0.02, 0.035, 0, r, g, b, a)
-				ClearDrawOrigin()
-			end
-			Wait(sleep)
-		end
-		listSprite = {}
-	end)
-end
-
 local function RaycastCamera(flag, playerCoords)
 	if not playerPed then playerPed = PlayerPedId() end
-	if not playerCoords then playerCoords = GetEntityCoords(playerPed) end
-
 	local rayPos, rayDir = ScreenPositionToCameraRay()
-	local destination = rayPos + 16 * rayDir
-	local rayHandle = StartShapeTestLosProbe(rayPos.x, rayPos.y, rayPos.z, destination.x, destination.y, destination.z, flag or -1, playerPed, 4)
-
+	local destination = rayPos + 10000 * rayDir
+	local rayHandle = StartShapeTestLosProbe(rayPos.x, rayPos.y, rayPos.z, destination.x, destination.y, destination.z, flag or -1, playerPed, 0)
 	while true do
 		local result, _, endCoords, _, entityHit = GetShapeTestResult(rayHandle)
-
+		if Config.Debug then
+			DrawLine(playerCoords.x, playerCoords.y, playerCoords.z, destination.x, destination.y, destination.z, 255, 0, 255, 255)
+			DrawLine(destination.x, destination.y, destination.z, endCoords.x, endCoords.y, endCoords.z, 255, 0, 255, 255)
+		end
+		-- todo: add support for materialHash
 		if result ~= 1 then
 			local distance = playerCoords and #(playerCoords - endCoords)
-
-			if flag == 30 and entityHit then
-				entityHit = HasEntityClearLosToEntity(entityHit, playerPed, 7) and entityHit
-			end
-
-			local entityType = entityHit and GetEntityType(entityHit)
-
-			if entityType == 0 and pcall(GetEntityModel, entityHit) then
-				entityType = 3
-			end
-
-			return endCoords, distance, entityHit, entityType or 0
+			return flag, endCoords, distance, entityHit, entityHit and GetEntityType(entityHit) or 0
 		end
-
 		Wait(0)
 	end
 end
@@ -158,7 +92,8 @@ end
 exports('LeftTarget', LeftTarget)
 
 local function DisableTarget(forcedisable)
-	if (not targetActive and hasFocus and not Config.Toggle) or not forcedisable then return end
+	isTargeting = false
+	if not targetActive or hasFocus or not forcedisable then return end
 	SetNuiFocus(false, false)
 	SetNuiFocusKeepInput(false)
 	Wait(100)
@@ -171,67 +106,51 @@ exports('DisableTarget', DisableTarget)
 local function DrawOutlineEntity(entity, bool)
 	if not Config.EnableOutline or IsEntityAPed(entity) then return end
 	SetEntityDrawOutline(entity, bool)
-	SetEntityDrawOutlineColor(Config.OutlineColor[1], Config.OutlineColor[2], Config.OutlineColor[3], Config.OutlineColor[4])
 end
 
 exports('DrawOutlineEntity', DrawOutlineEntity)
 
-local function SetupOptions(datatable, entity, distance, isZone)
-	if not isZone then table_wipe(sendDistance) end
+local function CheckEntity(hit, datatable, entity, distance)
+	if not next(datatable) then return end
+	table_wipe(sendDistance)
 	table_wipe(nuiData)
 	local slot = 0
-	for _, data in pairs(datatable) do
+	for o, data in pairs(datatable) do
 		if CheckOptions(data, entity, distance) then
-			slot = data.num or slot + 1
+			slot += 1
 			sendData[slot] = data
 			sendData[slot].entity = entity
 			nuiData[slot] = {
 				icon = data.icon,
-				targeticon = data.targeticon,
 				label = data.label
 			}
-			if not isZone then
-				sendDistance[data.distance] = true
-			end
-		else
-			if not isZone then
-				sendDistance[data.distance] = false
-			end
-		end
+			sendDistance[data.distance] = true
+		else sendDistance[data.distance] = false end
 	end
-	return slot
-end
-
-local function CheckEntity(flag, datatable, entity, distance)
-	if not next(datatable) then return end
-	local slot = SetupOptions(datatable, entity, distance)
-	if not next(nuiData) then
-		LeftTarget()
-		DrawOutlineEntity(entity, false)
-		return
-	end
-	success = true
-	SendNUIMessage({response = "foundTarget", data = nuiData[slot].targeticon})
-	DrawOutlineEntity(entity, true)
-	while targetActive and success do
-		local _, dist, entity2 = RaycastCamera(flag)
-		if entity ~= entity2 then
-			LeftTarget()
-			DrawOutlineEntity(entity, false)
-			break
-		elseif not hasFocus and IsDisabledControlPressed(0, Config.MenuControlKey) then
-			EnableNUI(nuiData)
-			DrawOutlineEntity(entity, false)
-		else
-			for k, v in pairs(sendDistance) do
-				if v and dist > k then
-					LeftTarget()
-					DrawOutlineEntity(entity, false)
-					break
+	if next(nuiData) then
+		success = true
+		SendNUIMessage({response = "foundTarget", data = sendData[slot].targeticon})
+		DrawOutlineEntity(entity, true)
+		while targetActive and success do
+			local _, _, dist, entity2, _ = RaycastCamera(hit, GetEntityCoords(playerPed))
+			if entity ~= entity2 then
+				LeftTarget()
+				DrawOutlineEntity(entity, false)
+				break
+			elseif not hasFocus and (IsControlPressed(0, Config.MenuControlKey) or IsDisabledControlPressed(0, Config.MenuControlKey)) then
+				EnableNUI(nuiData)
+				DrawOutlineEntity(entity, false)
+			else
+				for k, v in pairs(sendDistance) do
+					if v and dist > k then
+						LeftTarget()
+						DrawOutlineEntity(entity, false)
+						break
+					end
 				end
 			end
+			Wait(0)
 		end
-		Wait(0)
 	end
 	LeftTarget()
 	DrawOutlineEntity(entity, false)
@@ -239,11 +158,12 @@ end
 
 exports('CheckEntity', CheckEntity)
 
+local Bones = Load('bones')
 local function CheckBones(coords, entity, bonelist)
 	local closestBone = -1
 	local closestDistance = 20
 	local closestPos, closestBoneName
-	for _, v in pairs(bonelist) do
+	for k, v in pairs(bonelist) do
 		if Bones.Options[v] then
 			local boneId = GetEntityBoneIndexByName(entity, v)
 			local bonePos = GetWorldPositionOfEntityBone(entity, boneId)
@@ -260,159 +180,195 @@ end
 exports('CheckBones', CheckBones)
 
 local function EnableTarget()
-	if not allowTarget or success or (not Config.Standalone and not LocalPlayer.state['isLoggedIn']) or IsNuiFocused() or (Config.DisableInVehicle and IsPedInAnyVehicle(playerPed or PlayerPedId(), false)) then return end
-	if targetActive then return end
-
+	isTargeting = true
+	if not AllowTarget or success or (not Config.Standalone and not LocalPlayer.state['isLoggedIn']) or IsNuiFocused() or (Config.DisableInVehicle and IsPedInAnyVehicle(playerPed or PlayerPedId(), false)) then return end
+	if not CheckOptions then CheckOptions = _ENV.CheckOptions end
+	if targetActive or not CheckOptions then return end
 	targetActive = true
-	playerPed = PlayerPedId()
-	screen.ratio = GetAspectRatio(true)
-	screen.fov = GetFinalRenderedCamFov()
-	if Config.DrawSprite then DrawTarget() end
-
 	SendNUIMessage({response = "openTarget"})
 	CreateThread(function()
+		local playerId = PlayerId()
 		repeat
 			SetPauseMenuActive(false)
-			DisableAllControlActions(0)
-			EnableControlAction(0, 30, true)
-			EnableControlAction(0, 31, true)
-
-			if not hasFocus then
-				EnableControlAction(0, 1, true)
-				EnableControlAction(0, 2, true)
+			if hasFocus then
+				DisableControlAction(0, 1, true)
+				DisableControlAction(0, 2, true)
 			end
-
+			DisablePlayerFiring(playerId, true)
+			DisableControlAction(0, 24, true)
+			DisableControlAction(0, 25, true)
+			DisableControlAction(0, 37, true)
+			DisableControlAction(0, 47, true)
+			DisableControlAction(0, 58, true)
+			DisableControlAction(0, 140, true)
+			DisableControlAction(0, 141, true)
+			DisableControlAction(0, 142, true)
+			DisableControlAction(0, 143, true)
+			DisableControlAction(0, 257, true)
+			DisableControlAction(0, 263, true)
+			DisableControlAction(0, 264, true)
 			Wait(0)
 		until not targetActive
 	end)
-
-	local flag = 30
-
+	playerPed = PlayerPedId()
+	screen.ratio = GetAspectRatio(true)
+	screen.fov = GetFinalRenderedCamFov()
+	local curFlag = 30
 	while targetActive do
 		local sleep = 0
-		if flag == 30 then flag = -1 else flag = 30 end
-
-		local coords, distance, entity, entityType = RaycastCamera(flag)
+		local hit, coords, distance, entity, entityType = RaycastCamera(curFlag, GetEntityCoords(playerPed))
+		if curFlag == 30 then curFlag = -1 else curFlag = 30 end
 		if distance <= Config.MaxDistance then
 			if entityType > 0 then
-
-				-- Local(non-net) entity targets
-				if Entities[entity] then
-					CheckEntity(flag, Entities[entity], entity, distance)
-				end
-
-				-- Owned entity targets
-				if NetworkGetEntityIsNetworked(entity) then
-					local data = Entities[NetworkGetNetworkIdFromEntity(entity)]
-					if data then CheckEntity(flag, data, entity, distance) end
+				-- Entity targets
+				local data = Entities[entity]
+				if data then
+					CheckEntity(hit, data, entity, distance)
 				end
 
 				-- Player and Ped targets
 				if entityType == 1 then
 					local data = Models[GetEntityModel(entity)]
 					if IsPedAPlayer(entity) then data = Players end
-					if data and next(data) then CheckEntity(flag, data, entity, distance) end
+					if data and next(data) then
+						CheckEntity(hit, data, entity, distance)
+					end
 
-				-- Vehicle bones and models
+				-- Vehicle bones
 				elseif entityType == 2 then
-					local closestBone, _, closestBoneName = CheckBones(coords, entity, Bones.Vehicle)
+					local closestBone, closestPos, closestBoneName = CheckBones(coords, entity, Bones.Vehicle)
 					local datatable = Bones.Options[closestBoneName]
-
-					if datatable and next(datatable) and closestBone then
-						local slot = SetupOptions(datatable, entity, distance)
-						if next(nuiData) then
-							success = true
-							SendNUIMessage({response = "foundTarget", data = nuiData[slot].targeticon})
-							DrawOutlineEntity(entity, true)
-							while targetActive and success do
-								local coords2, dist, entity2 = RaycastCamera(flag)
-								if entity == entity2 then
-									local closestBone2 = CheckBones(coords2, entity, Bones.Vehicle)
-									if closestBone ~= closestBone2 then
+					if datatable and next(datatable) then
+						if closestBone then
+							table_wipe(sendDistance)
+							table_wipe(nuiData)
+							local slot = 0
+							for o, data in pairs(datatable) do
+								if CheckOptions(data, entity, #(coords - closestPos)) then
+									slot += 1
+									sendData[slot] = data
+									sendData[slot].entity = entity
+									nuiData[slot] = {
+										icon = data.icon,
+										label = data.label
+									}
+									sendDistance[data.distance] = true
+								else sendDistance[data.distance] = false end
+							end
+							if next(nuiData) then
+								success = true
+								SendNUIMessage({response = "foundTarget", data = sendData[slot].targeticon})
+								DrawOutlineEntity(entity, true)
+								while targetActive and success do
+									local _, _, dist, entity2 = RaycastCamera(hit, GetEntityCoords(playerPed))
+									if entity == entity2 then
+										local closestBone2 = CheckBones(coords, entity, Bones.Vehicle)
+										if closestBone ~= closestBone2 then
+											LeftTarget()
+											DrawOutlineEntity(entity, false)
+											break
+										elseif not hasFocus and (IsControlPressed(0, Config.MenuControlKey) or IsDisabledControlPressed(0, Config.MenuControlKey)) then
+											EnableNUI(nuiData)
+											DrawOutlineEntity(entity, false)
+										else
+											for k, v in pairs(sendDistance) do
+												if v and dist > k then
+													LeftTarget()
+													DrawOutlineEntity(entity, false)
+													break
+												end
+											end
+										end
+									else
 										LeftTarget()
 										DrawOutlineEntity(entity, false)
 										break
-									elseif not hasFocus and IsDisabledControlPressed(0, Config.MenuControlKey) then
-										EnableNUI(nuiData)
-										DrawOutlineEntity(entity, false)
-									else
-										for k, v in pairs(sendDistance) do
-											if v and dist > k then
-												LeftTarget()
-												DrawOutlineEntity(entity, false)
-												break
-											end
-										end
 									end
-								else
-									LeftTarget()
-									DrawOutlineEntity(entity, false)
-									break
+									Wait(0)
 								end
-								Wait(0)
+								LeftTarget()
+								DrawOutlineEntity(entity, false)
 							end
-							LeftTarget()
-							DrawOutlineEntity(entity, false)
+						end
+					else
+						-- Specific Vehicle targets
+						local data = Models[GetEntityModel(entity)]
+						if data then
+							CheckEntity(hit, data, entity, distance)
 						end
 					end
-
-					-- Vehicle model targets
-					local data = Models[GetEntityModel(entity)]
-					if data then CheckEntity(flag, data, entity, distance) end
 
 				-- Entity targets
 				elseif entityType > 2 then
 					local data = Models[GetEntityModel(entity)]
-					if data then CheckEntity(flag, data, entity, distance) end
+					if data then
+						CheckEntity(hit, data, entity, distance)
+					end
 				end
 
 				-- Generic targets
 				if not success then
 					local data = Types[entityType]
-					if data and next(data) then CheckEntity(flag, data, entity, distance) end
+					if data and next(data) then
+						CheckEntity(hit, data, entity, distance)
+					end
 				end
 			else sleep += 20 end
 			if not success then
 				-- Zone targets
 				local closestDis, closestZone
-				for k, zone in pairs(Zones) do
+				for _, zone in pairs(Zones) do
 					if distance < (closestDis or Config.MaxDistance) and distance <= zone.targetoptions.distance and zone:isPointInside(coords) then
 						closestDis = distance
 						closestZone = zone
-					end
-					if Config.DrawSprite then
-						if #(coords - zone.center) < (zone.targetoptions.drawDistance or Config.DrawDistance) then
-							listSprite[k] = zone
-						else
-							listSprite[k] = nil
-						end
+						CreateThread(function()
+							while isTargeting do
+								Wait(0)
+								RequestStreamedTextureDict("shared")
+								if not HasStreamedTextureDictLoaded("shared") then
+									Wait(0)
+								end
+								SetDrawOrigin(zone.center, 0) --add this
+								DrawSprite("shared", "emptydot_32", 0, 0, 0.02, 0.035, 0, 255,255,255, 255.0)
+							end
+						end)
 					end
 				end
+
 				if closestZone then
-					local slot = SetupOptions(closestZone.targetoptions.options, entity, distance, true)
-					if next(nuiData) then
-						success = true
-						SendNUIMessage({response = "foundTarget", data = nuiData[slot].targeticon})
-						if Config.DrawSprite then
-							listSprite[closestZone.name].success = true
+					table_wipe(nuiData)
+					local slot = 0
+					for o, data in pairs(closestZone.targetoptions.options) do
+						if CheckOptions(data, entity, distance) then
+							slot += 1
+							sendData[slot] = data
+							sendData[slot].entity = entity
+							nuiData[slot] = {
+								icon = data.icon,
+								label = data.label
+							}
 						end
+					end
+					if next(nuiData) then
+						TriggerEvent(CurrentResourceName..':client:enterPolyZone', sendData[slot])
+						TriggerServerEvent(CurrentResourceName..':server:enterPolyZone', sendData[slot])
+						success = true
+						SendNUIMessage({response = "foundTarget", data = sendData[slot].targeticon})
 						DrawOutlineEntity(entity, true)
 						while targetActive and success do
-							local newCoords, dist = RaycastCamera(flag)
-							if not closestZone:isPointInside(newCoords) or dist > closestZone.targetoptions.distance then
+							local _, coords, distance = RaycastCamera(hit, GetEntityCoords(playerPed))
+							if not closestZone:isPointInside(coords) or distance > closestZone.targetoptions.distance then
 								LeftTarget()
 								DrawOutlineEntity(entity, false)
-								break
-							elseif not hasFocus and IsDisabledControlPressed(0, Config.MenuControlKey) then
+							elseif not hasFocus and (IsControlPressed(0, Config.MenuControlKey) or IsDisabledControlPressed(0, Config.MenuControlKey)) then
 								EnableNUI(nuiData)
 								DrawOutlineEntity(entity, false)
 							end
 							Wait(0)
 						end
-						if Config.DrawSprite and listSprite[closestZone.name] then -- Check for when the targetActive is false and it removes the zone from listSprite
-							listSprite[closestZone.name].success = false
-						end
 						LeftTarget()
+						TriggerEvent(CurrentResourceName..':client:exitPolyZone', sendData[slot])
+						TriggerServerEvent(CurrentResourceName..':server:exitPolyZone', sendData[slot])
 						DrawOutlineEntity(entity, false)
 					end
 				else sleep += 20 end
@@ -424,8 +380,7 @@ local function EnableTarget()
 end
 
 local function AddCircleZone(name, center, radius, options, targetoptions)
-	local centerType = type(center)
-	center = (centerType == 'table' or centerType == 'vector4') and vec3(center.x, center.y, center.z) or center
+	center = type(center) == 'table' and vector3(center.x, center.y, center.z) or center
 	Zones[name] = CircleZone:Create(center, radius, options)
 	targetoptions.distance = targetoptions.distance or Config.MaxDistance
 	Zones[name].targetoptions = targetoptions
@@ -435,8 +390,7 @@ end
 exports("AddCircleZone", AddCircleZone)
 
 local function AddBoxZone(name, center, length, width, options, targetoptions)
-	local centerType = type(center)
-	center = (centerType == 'table' or centerType == 'vector4') and vec3(center.x, center.y, center.z) or center
+	center = type(center) == 'table' and vector3(center.x, center.y, center.z) or center
 	Zones[name] = BoxZone:Create(center, length, width, options)
 	targetoptions.distance = targetoptions.distance or Config.MaxDistance
 	Zones[name].targetoptions = targetoptions
@@ -447,10 +401,9 @@ exports("AddBoxZone", AddBoxZone)
 
 local function AddPolyZone(name, points, options, targetoptions)
 	local _points = {}
-	local pointsType = type(points[1])
-	if pointsType == 'table' or pointsType == 'vector3' or pointsType == 'vector4' then
+	if type(points[1]) == 'table' then
 		for i = 1, #points do
-			_points[i] = vec2(points[i].x, points[i].y)
+			_points[i] = vector2(points[i].x, points[i].y)
 		end
 	end
 	Zones[name] = PolyZone:Create(#_points > 0 and _points or points, options)
@@ -462,13 +415,55 @@ end
 exports("AddPolyZone", AddPolyZone)
 
 local function AddComboZone(zones, options, targetoptions)
-	Zones[options.name] = ComboZone:Create(zones, options)
+	Zones[name] = ComboZone:Create(zones, options)
 	targetoptions.distance = targetoptions.distance or Config.MaxDistance
-	Zones[options.name].targetoptions = targetoptions
-	return Zones[options.name]
+	Zones[name].targetoptions = targetoptions
+	return Zones[name]
 end
 
 exports("AddComboZone", AddComboZone)
+
+local function AddTargetBone(bones, parameters)
+	local distance, options = parameters.distance or Config.MaxDistance, parameters.options
+	if type(bones) == 'table' then
+		for _, bone in pairs(bones) do
+			if not Bones.Options[bone] then Bones.Options[bone] = {} end
+			for k, v in pairs(options) do
+				if not v.distance or v.distance > distance then v.distance = distance end
+				Bones.Options[bone][v.label] = v
+			end
+		end
+	elseif type(bones) == 'string' then
+		if not Bones.Options[bones] then Bones.Options[bones] = {} end
+		for k, v in pairs(options) do
+			if not v.distance or v.distance > distance then v.distance = distance end
+			Bones.Options[bones][v.label] = v
+		end
+	end
+end
+
+exports("AddTargetBone", AddTargetBone)
+
+local function AddTargetEntity(entities, parameters)
+	local distance, options = parameters.distance or Config.MaxDistance, parameters.options
+	if type(entities) == 'table' then
+		for _, entity in pairs(entities) do
+			if not Entities[entity] then Entities[entity] = {} end
+			for k, v in pairs(options) do
+				if not v.distance or v.distance > distance then v.distance = distance end
+				Entities[entity][v.label] = v
+			end
+		end
+	elseif type(entities) == 'number' then
+		if not Entities[entities] then Entities[entities] = {} end
+		for k, v in pairs(options) do
+			if not v.distance or v.distance > distance then v.distance = distance end
+			Entities[entities][v.label] = v
+		end
+	end
+end
+
+exports("AddTargetEntity", AddTargetEntity)
 
 local function AddEntityZone(name, entity, options, targetoptions)
 	Zones[name] = EntityZone:Create(entity, options)
@@ -479,6 +474,29 @@ end
 
 exports("AddEntityZone", AddEntityZone)
 
+local function AddTargetModel(models, parameters)
+	local distance, options = parameters.distance or Config.MaxDistance, parameters.options
+	if type(models) == 'table' then
+		for _, model in pairs(models) do
+			if type(model) == 'string' then model = GetHashKey(model) end
+			if not Models[model] then Models[model] = {} end
+			for k, v in pairs(options) do
+				if not v.distance or v.distance > distance then v.distance = distance end
+				Models[model][v.label] = v
+			end
+		end
+	else
+		if type(models) == 'string' then models = GetHashKey(models) end
+		if not Models[models] then Models[models] = {} end
+		for k, v in pairs(options) do
+			if not v.distance or v.distance > distance then v.distance = distance end
+			Models[models][v.label] = v
+		end
+	end
+end
+
+exports("AddTargetModel", AddTargetModel)
+
 local function RemoveZone(name)
 	if not Zones[name] then return end
 	if Zones[name].destroy then Zones[name]:destroy() end
@@ -487,193 +505,110 @@ end
 
 exports("RemoveZone", RemoveZone)
 
-local function SetOptions(tbl, distance, options)
-	for _, v in pairs(options) do
-		if v.required_item then
-			v.item = v.required_item
-			v.required_item = nil
-		end
-		if not v.distance or v.distance > distance then v.distance = distance end
-		tbl[v.label] = v
-	end
-end
-
-local function AddTargetBone(bones, parameters)
-	local distance, options = parameters.distance or Config.MaxDistance, parameters.options
-	if type(bones) == 'table' then
-		for _, bone in pairs(bones) do
-			if not Bones.Options[bone] then Bones.Options[bone] = {} end
-			SetOptions(Bones.Options[bone], distance, options)
-		end
-	elseif type(bones) == 'string' then
-		if not Bones.Options[bones] then Bones.Options[bones] = {} end
-		SetOptions(Bones.Options[bones], distance, options)
-	end
-end
-
-exports("AddTargetBone", AddTargetBone)
-
 local function RemoveTargetBone(bones, labels)
 	if type(bones) == 'table' then
 		for _, bone in pairs(bones) do
-			if labels then
-				if type(labels) == 'table' then
-					for _, v in pairs(labels) do
-						if Bones.Options[bone] then
-							Bones.Options[bone][v] = nil
-						end
-					end
-				elseif type(labels) == 'string' then
-					if Bones.Options[bone] then
-						Bones.Options[bone][labels] = nil
-					end
-				end
-			else
-				Bones.Options[bone] = nil
-			end
-		end
-	else
-		if labels then
 			if type(labels) == 'table' then
-				for _, v in pairs(labels) do
-					if Bones.Options[bones] then
-						Bones.Options[bones][v] = nil
+				for k, v in pairs(labels) do
+					if Bones.Options[bone] then
+						Bones.Options[bone][v] = nil
 					end
 				end
 			elseif type(labels) == 'string' then
-				if Bones.Options[bones] then
-					Bones.Options[bones][labels] = nil
+				if Bones.Options[bone] then
+					Bones.Options[bone][labels] = nil
 				end
 			end
-		else
-			Bones.Options[bones] = nil
+		end
+	else
+		if type(labels) == 'table' then
+			for k, v in pairs(labels) do
+				if Bones.Options[bones] then
+					Bones.Options[bones][v] = nil
+				end
+			end
+		elseif type(labels) == 'string' then
+			if Bones.Options[bones] then
+				Bones.Options[bones][labels] = nil
+			end
 		end
 	end
 end
 
 exports("RemoveTargetBone", RemoveTargetBone)
 
-local function AddTargetEntity(entities, parameters)
-	local distance, options = parameters.distance or Config.MaxDistance, parameters.options
-	if type(entities) == 'table' then
-		for _, entity in pairs(entities) do
-			if NetworkGetEntityIsNetworked(entity) then entity = NetworkGetNetworkIdFromEntity(entity) end -- Allow non-networked entities to be targeted
-			if not Entities[entity] then Entities[entity] = {} end
-			SetOptions(Entities[entity], distance, options)
-		end
-	elseif type(entities) == 'number' then
-		if NetworkGetEntityIsNetworked(entities) then entities = NetworkGetNetworkIdFromEntity(entities) end -- Allow non-networked entities to be targeted
-		if not Entities[entities] then Entities[entities] = {} end
-		SetOptions(Entities[entities], distance, options)
-	end
-end
-
-exports("AddTargetEntity", AddTargetEntity)
-
-local function RemoveTargetEntity(entities, labels)
-	if type(entities) == 'table' then
-		for _, entity in pairs(entities) do
-			if NetworkGetEntityIsNetworked(entity) then entity = NetworkGetNetworkIdFromEntity(entity) end -- Allow non-networked entities to be targeted
-			if labels then
-				if type(labels) == 'table' then
-					for _, v in pairs(labels) do
-						if Entities[entity] then
-							Entities[entity][v] = nil
-						end
-					end
-				elseif type(labels) == 'string' then
-					if Entities[entity] then
-						Entities[entity][labels] = nil
-					end
-				end
-			else
-				Entities[entity] = nil
-			end
-		end
-	elseif type(entities) == 'number' then
-		if NetworkGetEntityIsNetworked(entities) then entities = NetworkGetNetworkIdFromEntity(entities) end -- Allow non-networked entities to be targeted
-		if labels then
-			if type(labels) == 'table' then
-				for _, v in pairs(labels) do
-					if Entities[entities] then
-						Entities[entities][v] = nil
-					end
-				end
-			elseif type(labels) == 'string' then
-				if Entities[entities] then
-					Entities[entities][labels] = nil
-				end
-			end
-		else
-			Entities[entities] = nil
-		end
-	end
-end
-
-exports("RemoveTargetEntity", RemoveTargetEntity)
-
-local function AddTargetModel(models, parameters)
-	local distance, options = parameters.distance or Config.MaxDistance, parameters.options
-	if type(models) == 'table' then
-		for _, model in pairs(models) do
-			if type(model) == 'string' then model = joaat(model) end
-			if not Models[model] then Models[model] = {} end
-			SetOptions(Models[model], distance, options)
-		end
-	else
-		if type(models) == 'string' then models = joaat(models) end
-		if not Models[models] then Models[models] = {} end
-		SetOptions(Models[models], distance, options)
-	end
-end
-
-exports("AddTargetModel", AddTargetModel)
-
 local function RemoveTargetModel(models, labels)
 	if type(models) == 'table' then
 		for _, model in pairs(models) do
-			if type(model) == 'string' then model = joaat(model) end
-			if labels then
-				if type(labels) == 'table' then
-					for _, v in pairs(labels) do
-						if Models[model] then
-							Models[model][v] = nil
-						end
-					end
-				elseif type(labels) == 'string' then
-					if Models[model] then
-						Models[model][labels] = nil
-					end
-				end
-			else
-				Models[model] = nil
-			end
-		end
-	else
-		if type(models) == 'string' then models = joaat(models) end
-		if labels then
+			if type(model) == 'string' then model = GetHashKey(model) end
 			if type(labels) == 'table' then
-				for _, v in pairs(labels) do
-					if Models[models] then
-						Models[models][v] = nil
+				for k, v in pairs(labels) do
+					if Models[model] then
+						Models[model][v] = nil
 					end
 				end
 			elseif type(labels) == 'string' then
-				if Models[models] then
-					Models[models][labels] = nil
+				if Models[model] then
+					Models[model][labels] = nil
 				end
 			end
-		else
-			Models[models] = nil
+		end
+	else
+		if type(models) == 'string' then models = GetHashKey(models) end
+		if type(labels) == 'table' then
+			for k, v in pairs(labels) do
+				if Models[models] then
+					Models[models][v] = nil
+				end
+			end
+		elseif type(labels) == 'string' then
+			if Models[models] then
+				Models[models][labels] = nil
+			end
 		end
 	end
 end
 
 exports("RemoveTargetModel", RemoveTargetModel)
 
+local function RemoveTargetEntity(entities, labels)
+	if type(entities) == 'table' then
+		for _, entity in pairs(entities) do
+			if type(labels) == 'table' then
+				for k, v in pairs(labels) do
+					if Entities[entity] then
+						Entities[entity][v] = nil
+					end
+				end
+			elseif type(labels) == 'string' then
+				if Entities[entity] then
+					Entities[entity][labels] = nil
+				end
+			end
+		end
+	elseif type(entities) == 'string' then
+		if type(labels) == 'table' then
+			for k, v in pairs(labels) do
+				if Entities[entities] then
+					Entities[entities][v] = nil
+				end
+			end
+		elseif type(labels) == 'string' then
+			if Entities[entities] then
+				Entities[entities][labels] = nil
+			end
+		end
+	end
+end
+
+exports("RemoveTargetEntity", RemoveTargetEntity)
+
 local function AddGlobalType(type, parameters)
 	local distance, options = parameters.distance or Config.MaxDistance, parameters.options
-	SetOptions(Types[type], distance, options)
+	for k, v in pairs(options) do
+		if not v.distance or v.distance > distance then v.distance = distance end
+		Types[type][v.label] = v
+	end
 end
 
 exports("AddGlobalType", AddGlobalType)
@@ -692,54 +627,49 @@ exports("AddGlobalObject", AddGlobalObject)
 
 local function AddGlobalPlayer(parameters)
 	local distance, options = parameters.distance or Config.MaxDistance, parameters.options
-	SetOptions(Players, distance, options)
+	for k, v in pairs(options) do
+		if not v.distance or v.distance > distance then v.distance = distance end
+		Players[v.label] = v
+	end
 end
 
 exports("AddGlobalPlayer", AddGlobalPlayer)
 
-local function RemoveGlobalType(typ, labels)
-	if labels then
-		if type(labels) == 'table' then
-			for _, v in pairs(labels) do
-				Types[typ][v] = nil
-			end
-		elseif type(labels) == 'string' then
-			Types[typ][labels] = nil
+local function RemoveGlobalType(type, labels)
+	if type(labels) == 'table' then
+		for k, v in pairs(labels) do
+			Types[type][v] = nil
 		end
-	else
-		Types[typ] = {}
+	elseif type(labels) == 'string' then
+		Types[type][labels] = nil
 	end
 end
 
 exports("RemoveGlobalType", RemoveGlobalType)
 
 local function RemoveGlobalPlayer(labels)
-	if labels then
-		if type(labels) == 'table' then
-			for _, v in pairs(labels) do
-				Players[v] = nil
-			end
-		elseif type(labels) == 'string' then
-			Players[labels] = nil
+	if type(labels) == 'table' then
+		for k, v in pairs(labels) do
+			Players[v] = nil
 		end
-	else
-		Players = {}
+	elseif type(labels) == 'string' then
+		Players[labels] = nil
 	end
 end
 
 exports("RemoveGlobalPlayer", RemoveGlobalPlayer)
 
 function SpawnPeds()
-	if pedsReady or not next(Config.Peds) then return end
+	if PedsReady or not next(Config.Peds) then return end
 	for k, v in pairs(Config.Peds) do
 		if not v.currentpednumber or v.currentpednumber == 0 then
-			local spawnedped
+			local spawnedped = 0
 			RequestModel(v.model)
 			while not HasModelLoaded(v.model) do
 				Wait(0)
 			end
 
-			if type(v.model) == 'string' then v.model = joaat(v.model) end
+			if type(v.model) == 'string' then v.model = GetHashKey(v.model) end
 
 			if v.minusOne then
 				spawnedped = CreatePed(0, v.model, v.coords.x, v.coords.y, v.coords.z - 1.0, v.coords.w, v.networked or false, false)
@@ -765,90 +695,49 @@ function SpawnPeds()
 					Wait(0)
 				end
 
-				TaskPlayAnim(spawnedped, v.animDict, v.anim, 8.0, 0, -1, v.flag or 1, 0, false, false, false)
+				TaskPlayAnim(spawnedped, v.animDict, v.anim, 8.0, 0, -1, v.flag or 1, 0, 0, 0, 0)
 			end
 
 			if v.scenario then
-				SetPedCanPlayAmbientAnims(spawnedped, true)
 				TaskStartScenarioInPlace(spawnedped, v.scenario, 0, true)
 			end
 
-			if v.pedrelations then
-				if type(v.pedrelations.groupname) ~= 'string' then error(v.pedrelations.groupname .. ' is not a string') end
-
-				local pedgrouphash = joaat(v.pedrelations.groupname)
-
-				if not DoesRelationshipGroupExist(pedgrouphash) then
-					AddRelationshipGroup(v.pedrelations.groupname)
-				end
-
-				SetPedRelationshipGroupHash(spawnedped, pedgrouphash)
-				if v.pedrelations.toplayer then
-					SetRelationshipBetweenGroups(v.pedrelations.toplayer, pedgrouphash, joaat('PLAYER'))
-				end
-
-				if v.pedrelations.toowngroup then
-					SetRelationshipBetweenGroups(v.pedrelations.toowngroup, pedgrouphash, pedgrouphash)
-				end
-			end
-
-			if v.weapon then
-				if type(v.weapon.name) == 'string' then v.weapon.name = joaat(v.weapon.name) end
-
-				if IsWeaponValid(v.weapon.name) then
-					SetCanPedEquipWeapon(spawnedped, v.weapon.name, true)
-					GiveWeaponToPed(spawnedped, v.weapon.name, v.weapon.ammo, v.weapon.hidden or false, true)
-					SetPedCurrentWeaponVisible(spawnedped, not v.weapon.hidden or false, true)
-				end
-			end
-
 			if v.target then
-				if v.target.useModel then
-					AddTargetModel(v.model, {
-						options = v.target.options,
-						distance = v.target.distance
-					})
-				else
-					AddTargetEntity(spawnedped, {
-						options = v.target.options,
-						distance = v.target.distance
-					})
-				end
-			end
-
-			if v.action then
-				v.action(v)
+				AddTargetModel(v.model, {
+					options = v.target.options,
+					distance = v.target.distance
+				})
 			end
 
 			Config.Peds[k].currentpednumber = spawnedped
 		end
 	end
-	pedsReady = true
+	PedsReady = true
 end
 
 function DeletePeds()
-	if not pedsReady or not next(Config.Peds) then return end
+	if not PedsReady or not next(Config.Peds) then return end
 	for k, v in pairs(Config.Peds) do
 		DeletePed(v.currentpednumber)
 		Config.Peds[k].currentpednumber = 0
 	end
-	pedsReady = false
+	PedsReady = false
 end
 
 exports("DeletePeds", DeletePeds)
 
 local function SpawnPed(data)
-	local spawnedped
+	local spawnedped = 0
 	local key, value = next(data)
-	if type(value) == 'table' and type(key) ~= 'string' then
-		for _, v in pairs(data) do
+	if type(value) == 'table' and key ~= 'target' and key ~= 'coords' then
+		for k, v in pairs(data) do
 			if v.spawnNow then
 				RequestModel(v.model)
 				while not HasModelLoaded(v.model) do
 					Wait(0)
 				end
 
-				if type(v.model) == 'string' then v.model = joaat(v.model) end
+				if type(v.model) == 'string' then v.model = GetHashKey(v.model) end
 
 				if v.minusOne then
 					spawnedped = CreatePed(0, v.model, v.coords.x, v.coords.y, v.coords.z - 1.0, v.coords.w or 0.0, v.networked or false, true)
@@ -874,62 +763,21 @@ local function SpawnPed(data)
 						Wait(0)
 					end
 
-					TaskPlayAnim(spawnedped, v.animDict, v.anim, 8.0, 0, -1, v.flag or 1, 0, false, false, false)
+					TaskPlayAnim(spawnedped, v.animDict, v.anim, 8.0, 0, -1, v.flag or 1, 0, 0, 0, 0)
 				end
 
 				if v.scenario then
-					SetPedCanPlayAmbientAnims(spawnedped, true)
 					TaskStartScenarioInPlace(spawnedped, v.scenario, 0, true)
 				end
 
-				if v.pedrelations and type(v.pedrelations.groupname) == 'string' then
-					if type(v.pedrelations.groupname) ~= 'string' then error(v.pedrelations.groupname .. ' is not a string') end
-
-					local pedgrouphash = joaat(v.pedrelations.groupname)
-
-					if not DoesRelationshipGroupExist(pedgrouphash) then
-						AddRelationshipGroup(v.pedrelations.groupname)
-					end
-
-					SetPedRelationshipGroupHash(spawnedped, pedgrouphash)
-					if v.pedrelations.toplayer then
-						SetRelationshipBetweenGroups(v.pedrelations.toplayer, pedgrouphash, joaat('PLAYER'))
-					end
-
-					if v.pedrelations.toowngroup then
-						SetRelationshipBetweenGroups(v.pedrelations.toowngroup, pedgrouphash, pedgrouphash)
-					end
-				end
-
-				if v.weapon then
-					if type(v.weapon.name) == 'string' then v.weapon.name = joaat(v.weapon.name) end
-
-					if IsWeaponValid(v.weapon.name) then
-						SetCanPedEquipWeapon(spawnedped, v.weapon.name, true)
-						GiveWeaponToPed(spawnedped, v.weapon.name, v.weapon.ammo, v.weapon.hidden or false, true)
-						SetPedCurrentWeaponVisible(spawnedped, not v.weapon.hidden or false, true)
-					end
-				end
-
 				if v.target then
-					if v.target.useModel then
-						AddTargetModel(v.model, {
-							options = v.target.options,
-							distance = v.target.distance
-						})
-					else
-						AddTargetEntity(spawnedped, {
-							options = v.target.options,
-							distance = v.target.distance
-						})
-					end
+					AddTargetModel(v.model, {
+						options = v.target.options,
+						distance = v.target.distance
+					})
 				end
 
 				v.currentpednumber = spawnedped
-
-				if v.action then
-					v.action(v)
-				end
 			end
 
 			local nextnumber = #Config.Peds + 1
@@ -938,13 +786,18 @@ local function SpawnPed(data)
 			Config.Peds[nextnumber] = v
 		end
 	else
+		if type(value) == 'table' and key ~= 'target' and key ~= 'coords' then
+			if Config.Debug then print('Wrong table format for SpawnPed export') end
+			return
+		end
+
 		if data.spawnNow then
 			RequestModel(data.model)
 			while not HasModelLoaded(data.model) do
 				Wait(0)
 			end
 
-			if type(data.model) == 'string' then data.model = joaat(data.model) end
+			if type(data.model) == 'string' then data.model = GetHashKey(data.model) end
 
 			if data.minusOne then
 				spawnedped = CreatePed(0, data.model, data.coords.x, data.coords.y, data.coords.z - 1.0, data.coords.w, data.networked or false, true)
@@ -970,62 +823,21 @@ local function SpawnPed(data)
 					Wait(0)
 				end
 
-				TaskPlayAnim(spawnedped, data.animDict, data.anim, 8.0, 0, -1, data.flag or 1, 0, false, false, false)
+				TaskPlayAnim(spawnedped, data.animDict, data.anim, 8.0, 0, -1, data.flag or 1, 0, 0, 0, 0)
 			end
 
 			if data.scenario then
-				SetPedCanPlayAmbientAnims(spawnedped, true)
 				TaskStartScenarioInPlace(spawnedped, data.scenario, 0, true)
 			end
 
-			if data.pedrelations then
-				if type(data.pedrelations.groupname) ~= 'string' then error(data.pedrelations.groupname .. ' is not a string') end
-
-				local pedgrouphash = joaat(data.pedrelations.groupname)
-
-				if not DoesRelationshipGroupExist(pedgrouphash) then
-					AddRelationshipGroup(data.pedrelations.groupname)
-				end
-
-				SetPedRelationshipGroupHash(spawnedped, pedgrouphash)
-				if data.pedrelations.toplayer then
-					SetRelationshipBetweenGroups(data.pedrelations.toplayer, pedgrouphash, joaat('PLAYER'))
-				end
-
-				if data.pedrelations.toowngroup then
-					SetRelationshipBetweenGroups(data.pedrelations.toowngroup, pedgrouphash, pedgrouphash)
-				end
-			end
-
-			if data.weapon then
-				if type(data.weapon.name) == 'string' then data.weapon.name = joaat(data.weapon.name) end
-
-				if IsWeaponValid(data.weapon.name) then
-					SetCanPedEquipWeapon(spawnedped, data.weapon.name, true)
-					GiveWeaponToPed(spawnedped, data.weapon.name, data.weapon.ammo, data.weapon.hidden or false, true)
-					SetPedCurrentWeaponVisible(spawnedped, not data.weapon.hidden or false, true)
-				end
-			end
-
 			if data.target then
-				if data.target.useModel then
-					AddTargetModel(data.model, {
-						options = data.target.options,
-						distance = data.target.distance
-					})
-				else
-					AddTargetEntity(spawnedped, {
-						options = data.target.options,
-						distance = data.target.distance
-					})
-				end
+				AddTargetModel(data.model, {
+					options = data.target.options,
+					distance = data.target.distance
+				})
 			end
 
 			data.currentpednumber = spawnedped
-			
-			if data.action then
-				data.action(data)
-			end
 		end
 
 		local nextnumber = #Config.Peds + 1
@@ -1052,129 +864,541 @@ exports("RemoveSpawnedPed", RemovePed)
 
 -- Misc. Exports
 
-local function RemoveGlobalPed(labels) RemoveGlobalType(1, labels) end
-exports("RemoveGlobalPed", RemoveGlobalPed)
+exports("RemoveGlobalPed", function(labels) RemoveGlobalType(1, labels) end)
 
-local function RemoveGlobalVehicle(labels) RemoveGlobalType(2, labels) end
-exports("RemoveGlobalVehicle", RemoveGlobalVehicle)
+exports("RemoveGlobalVehicle", function(labels) RemoveGlobalType(2, labels) end)
 
-local function RemoveGlobalObject(labels) RemoveGlobalType(3, labels) end
-exports("RemoveGlobalObject", RemoveGlobalObject)
+exports("RemoveGlobalObject", function(labels) RemoveGlobalType(3, labels) end)
 
-local function IsTargetActive() return targetActive end
-exports("IsTargetActive", IsTargetActive)
+exports("IsTargetActive", function() return targetActive end)
 
-local function IsTargetSuccess() return success end
-exports("IsTargetSuccess", IsTargetSuccess)
+exports("IsTargetSuccess", function() return success end)
 
-local function GetGlobalTypeData(type, label) return Types[type][label] end
-exports("GetGlobalTypeData", GetGlobalTypeData)
+exports("GetGlobalTypeData", function(type, label) return Types[type][label] end)
 
-local function GetZoneData(name) return Zones[name] end
-exports("GetZoneData", GetZoneData)
+exports("GetZoneData", function(name) return Zones[name] end)
 
-local function GetTargetBoneData(bone, label) return Bones.Options[bone][label] end
-exports("GetTargetBoneData", GetTargetBoneData)
+exports("GetTargetBoneData", function(bone) return Bones.Options[bone][label] end)
 
-local function GetTargetEntityData(entity, label) return Entities[entity][label] end
-exports("GetTargetEntityData", GetTargetEntityData)
+exports("GetTargetEntityData", function(entity, label) return Entities[entity][label] end)
 
-local function GetTargetModelData(model, label) return Models[model][label] end
-exports("GetTargetModelData", GetTargetModelData)
+exports("GetTargetModelData", function(model, label) return Models[model][label] end)
 
-local function GetGlobalPedData(label) return Types[1][label] end
-exports("GetGlobalPedData", GetGlobalPedData)
+exports("GetGlobalPedData", function(label) return Types[1][label] end)
 
-local function GetGlobalVehicleData(label) return Types[2][label] end
-exports("GetGlobalVehicleData", GetGlobalVehicleData)
+exports("GetGlobalVehicleData", function(label) return Types[2][label] end)
 
-local function GetGlobalObjectData(label) return Types[3][label] end
-exports("GetGlobalObjectData", GetGlobalObjectData)
+exports("GetGlobalObjectData", function(label) return Types[3][label] end)
 
-local function GetGlobalPlayerData(label) return Players[label] end
-exports("GetGlobalPlayerData", GetGlobalPlayerData)
+exports("GetGlobalPlayerData", function(label) return Players[label] end)
 
-local function UpdateGlobalTypeData(type, label, data) Types[type][label] = data end
-exports("UpdateGlobalTypeData", UpdateGlobalTypeData)
+exports("UpdateGlobalTypeData", function(type, label, data) Types[type][label] = data end)
 
-local function UpdateZoneData(name, data)
-	data.distance = data.distance or Config.MaxDistance
-	Zones[name].targetoptions = data
-end
-exports("UpdateZoneData", UpdateZoneData)
+exports("UpdateZoneData", function(name, data) Zones[name] = data end)
 
-local function UpdateTargetBoneData(bone, label, data) Bones.Options[bone][label] = data end
-exports("UpdateTargetBoneData", UpdateTargetBoneData)
+exports("UpdateTargetBoneData", function(bone, label, data) Bones.Options[bone][label] = data end)
 
-local function UpdateTargetEntityData(entity, label, data) Entities[entity][label] = data end
-exports("UpdateTargetEntityData", UpdateTargetEntityData)
+exports("UpdateTargetEntityData", function(entity, label, data) Entities[entity][label] = data end)
 
-local function UpdateTargetModelData(model, label, data) Models[model][label] = data end
-exports("UpdateTargetModelData", UpdateTargetModelData)
+exports("UpdateTargetModelData", function(model, label, data) Models[model][label] = data end)
 
-local function UpdateGlobalPedData(label, data) Types[1][label] = data end
-exports("UpdateGlobalPedData", UpdateGlobalPedData)
+exports("UpdateGlobalPedData", function(label, data) Types[1][label] = data end)
 
-local function UpdateGlobalVehicleData(label, data) Types[2][label] = data end
-exports("UpdateGlobalVehicleData", UpdateGlobalVehicleData)
+exports("UpdateGlobalVehicleData", function(label, data) Types[2][label] = data end)
 
-local function UpdateGlobalObjectData(label, data) Types[3][label] = data end
-exports("UpdateGlobalObjectData", UpdateGlobalObjectData)
+exports("UpdateGlobalObjectData", function(label, data) Types[3][label] = data end)
 
-local function UpdateGlobalPlayerData(label, data) Players[label] = data end
-exports("UpdateGlobalPlayerData", UpdateGlobalPlayerData)
+exports("UpdateGlobalPlayerData", function(label, data) Players[label] = data end)
 
-local function GetPeds() return Config.Peds end
-exports("GetPeds", GetPeds)
+exports("GetPeds", function() return Config.Peds end)
 
-local function UpdatePedsData(index, data) Config.Peds[index] = data end
-exports("UpdatePedsData", UpdatePedsData)
+exports("UpdatePedsData", function(index, data) Config.Peds[index] = data end)
 
-local function AllowTargeting(bool)
-	allowTarget = bool
+exports("AllowTargeting", function(bool) AllowTarget = bool end)
 
-	if allowTarget then return end
+-------------------------------------------------------------------- Target ----------------------------------------------------------------------------
+	--------------- City Hall
 
-	DisableTarget(true)
-end
-exports("AllowTargeting", AllowTargeting)
+	exports['qb-target']:AddTargetModel(`ig_bankman`, {
+		options = {
+			{ 
+				event = 'nh-context2:Banking', 
+				icon = "fas fa-piggy-bank", 
+				label = "Speak with Bank Employee", 
+			},
+		},
+		distance = 3.0 
+	})
+	
+	RegisterNetEvent('nh-context2:Banking', function()
+		TriggerEvent('nh-context2:sendMenu', {
+			{
+				id = 1,
+				header = "Bank",
+				txt = ""
+			},
+			{
+				id = 2,
+				header = "How can I help you?",
+				txt = "Banking",
+				params = {
+					event = "qb-banking:client:bank:openUI"
+				}
+			},
+			-- {
+			-- 	id = 3,
+			-- 	header = "Collect Paycheck",
+			-- 	txt = "",
+			-- 	params = {
+			-- 		event = "crfw-paychecks:targetcollect"
+			-- 	}
+			-- },
+		})
+		end)
+
+------------- Garage System
+
+exports['qb-target']:AddTargetModel(`a_m_o_soucent_03`, {
+    options = {
+        { 
+            event = "qb-garages:client:menuGarage", 
+            icon = "fas fa-car", 
+            label = "Speak with Garage Employee", 
+        },
+    },
+    distance = 2.0 
+})
+------------- sANDYPDGARAGE
+
+exports['qb-target']:AddTargetModel(`s_m_y_sheriff_01`, {
+    options = {
+        { 
+            event = "qb-garages:client:menuGarage", 
+            icon = "fas fa-car", 
+            label = "Speak with Garage Employee", 
+        },
+    },
+    distance = 2.0 
+})
+
+
+--------------- Depot System 
+
+exports['qb-target']:AddTargetModel(`ig_sacha`, {
+    options = {
+        { 
+            event = "qb-garages:client:menuDepot", 
+            icon = "fas fa-car-side", 
+            label = "Speak with Depot Employee", 
+        },
+    },
+    distance = 2.0 
+})
+
+-------------- Dresshop system
+
+exports['qb-target']:AddTargetModel(`s_f_y_shop_low`, {
+    options = {
+        { 
+            event = "nh-context2:opendress", 
+            icon = "fas fa-shopping-cart",
+            label = "Speak with Dressshop Employee", 
+        },
+    },
+    distance = 3.0 
+})
+
+RegisterNetEvent('nh-context2:opendress', function()
+    TriggerEvent('nh-context2:sendMenu', {
+        {
+            id = 1,
+            header = "Clothing Shop - Seller",
+            txt = ""
+        },
+        {
+            id = 2,
+            header = "",
+            txt = "How can I help you ?",
+            params = {
+                event = "nh-context2:opendress2",
+                args = {
+                    number = 1,
+                    id = 2
+                }
+            }
+        },
+    })
+end)
+
+RegisterNetEvent('nh-context2:opendress2', function(data)
+    local id = data.id
+    local number = data.number
+    TriggerEvent('nh-context2:sendMenu', {
+        {
+            id = 1,
+            header = "< Go Back",
+            txt = "",
+            params = {
+                event = "nh-context2:testMenu"
+            }
+        },
+		{
+            id = 3,
+            header = "Outfits",
+            txt = "Outfits Menu",
+			params = {
+                event = "qb-clothing:client:openOutfitMenu",
+			}
+        },
+    })
+end)
+
+--------------- 24/7 Supermarket & Robs' Liqour 
+
+exports['qb-target']:AddTargetModel(`mp_m_shopkeep_01`, {
+    options = {
+        { 
+            event = 'nh-context2:shopmenu', 
+            icon = "fas fa-store", 
+            label = "Speak with Store Employee", 
+        },
+    },
+    distance = 2.0 
+})
+
+RegisterNetEvent('nh-context2:shopmenu', function()
+	TriggerEvent('nh-context2:sendMenu', {
+		{
+			id = 1,
+			header = "24/7 Supermarket",
+			txt = ""
+		},
+		{
+			id = 2,
+			header = "Open Shop",
+			txt = "Lets shop!",
+			params = {
+				event = "qb-shops:marketshop"
+			}
+		},
+	})
+	end)
+
+	--------------- Liqour shop
+
+	exports['qb-target']:AddTargetModel(`a_m_y_hippy_01`, {
+		options = {
+			{ 
+				event = 'nh-context2:liquorshop', 
+				icon = "fas fa-store", 
+				label = "Speak with Store Employee", 
+			},
+		},
+		distance = 2.0 
+	})
+	
+	RegisterNetEvent('nh-context2:liquorshop', function()
+		TriggerEvent('nh-context2:sendMenu', {
+			{
+				id = 1,
+				header = "Liqour Shop",
+				txt = ""
+			},
+			{
+				id = 2,
+				header = "Open Shop",
+				txt = "Lets shop!",
+				params = {
+					event = "qb-shops:marketshop"
+				}
+			},
+		})
+	end)
+
+
+--------------- Smoke on the water & Sea World
+
+exports['qb-target']:AddTargetModel(`a_f_m_business_02`, {
+    options = {
+        { 
+            event = 'nh-context2:shopmenu2', 
+            icon = "fas fa-store", 
+            label = "Speak with Store Employee", 
+        },
+    },
+    distance = 2.0 
+})
+
+RegisterNetEvent('nh-context2:shopmenu2', function()
+	TriggerEvent('nh-context2:sendMenu', {
+		{
+			id = 1,
+			header = "Smoke On the Water",
+			txt = ""
+		},
+		{
+			id = 2,
+			header = "Open Shop",
+			txt = "Lets shop!",
+			params = {
+				event = "qb-shops:marketshop"
+			}
+		},
+	})
+end)
+
+-- Sea World
+
+exports['qb-target']:AddTargetModel(`a_m_y_epsilon_01`, {
+    options = {
+        { 
+            event = 'nh-context2:shopmenu3', 
+            icon = "fas fa-store", 
+            label = "Speak with Seaworld Employee", 
+        },
+    },
+    distance = 2.0 
+})
+
+RegisterNetEvent('nh-context2:shopmenu3', function()
+	TriggerEvent('nh-context2:sendMenu', {
+		{
+			id = 1,
+			header = "Sea World Shop",
+			txt = ""
+		},
+		{
+			id = 2,
+			header = "Open Shop",
+			txt = "Lets shop!",
+			params = {
+				event = "qb-shops:marketshop"
+			}
+		},
+	})
+end)
+
+---------- Ammunation 
+
+exports['qb-target']:AddTargetModel(`s_m_y_ammucity_01`, {
+	options = {
+        { 
+            event = "qb-shops:marketshop", 
+            icon = "fas fa-shopping-cart",  
+            label = "Speak with Weapon Dealer", 
+        },
+	},
+	distance = 2.0 
+})
+
+------------ Hardware Store
+
+exports['qb-target']:AddTargetModel(`csb_money`, {
+	options = {
+        { 
+            event = "qb-shops:marketshop", 
+            icon = "fas fa-shopping-cart",  
+            label = "Speak with Hardware Employee", 
+        },
+	},
+	distance = 2.0 
+})
+
+--------------- Pillbox Hospital 
+	
+exports['qb-target']:AddTargetModel(`mp_f_meth_01`, {
+    options = {
+            {
+                    event = "nh-context2:pillbox",
+                    icon = "fas fa-h-square",
+                    label = "Talk With Nurse"
+        },
+    },
+    distance = 4.0 
+})
+
+exports['qb-target']:AddTargetModel(`mp_f_meth_01`, {
+	options = {
+        { 
+            type = "client",
+            event = "Toggle:DutyAmbulance",
+            icon = "fas fa-sign-in-alt",
+            label = "on/off Duty",
+			job = "ambulance"
+        },
+	},
+	distance = 4.0 
+})
+----- EMS Armory
+exports['qb-target']:AddTargetModel(`mp_f_meth_01`, {
+	options = {
+        { 
+            type = "client",
+            event = "ambulance:client:armory",
+            icon = "fas fa-archive",
+            label = "EMS Armory",
+			job = "ambulance"
+        },
+	},
+	distance = 4.0 
+})
+
+-- Pillbox NH
+RegisterNetEvent('nh-context2:pillbox', function()
+    TriggerEvent('nh-context2:sendMenu', {
+        {
+            id = 1,
+            header = "Pillbox Hill Medical Center",
+            txt = ""
+        },
+        {
+            id = 2,
+            header = "Talk with Nurse",
+            txt = "Need some medicine?",
+            params = {
+                event = "qb-shops:marketshop",
+                args = {
+                    number = 1,
+                    id = 2
+                }
+            }
+        },
+    })
+end)
+
+--------------- car Wash
+
+exports['qb-target']:AddTargetModel(`cs_old_man2`, {
+    options = {
+        { 
+            event = 'nh-context2:carwash', 
+            icon = "fas fa-circle", 
+            label = "Speak with carwash Employee", 
+        },
+    },
+    distance = 3.0 
+})
+
+RegisterNetEvent('nh-context2:carwash', function()
+	TriggerEvent('nh-context2:sendMenu', {
+		{
+			id = 1,
+			header = "24/7 car wash services",
+			txt = ""
+		},
+		{
+			id = 2,
+			header = "Wash car",
+			txt = "Lets wash your car!",
+			params = {
+				event = "qb-carwash:client:washCar"
+			}
+		},
+	})
+end)
+
+--------------- City Hall
+
+-- exports['qb-target']:AddTargetModel(`csb_tomcasino`, {
+--     options = {
+--         { 
+--             event = 'nh-context2:cityhall', 
+--             icon = "fas fa-circle", 
+--             label = "Speak with cityahll Employee", 
+--         },
+--     },
+--     distance = 3.0 
+-- })
+
+RegisterNetEvent('nh-context2:cityhall', function()
+	TriggerEvent('nh-context2:sendMenu', {
+		{
+			id = 1,
+			header = "LIFE INVADER",
+			txt = ""
+		},
+		{
+			id = 2,
+			header = "How can I help you?",
+			txt = "JOBS & IDENTITY",
+			params = {
+				event = "cityhall:open:menu"
+			}
+		},
+	})
+end)
+
+--------------- police Garage
+
+		exports['qb-target']:AddTargetModel(`csb_trafficwarden`, {
+			options = {
+				{ 
+					event = 'nh-context2:policegarage', 
+					icon = "fas fa-store", 
+					label = "How can i help you sir?", 
+				},
+			},
+			distance = 2.0 
+		})
+		
+		RegisterNetEvent('nh-context2:policegarage', function()
+			TriggerEvent('nh-context2:sendMenu', {
+				{
+					id = 1,
+					header = "Police Garage",
+					txt = ""
+				},
+				{
+					id = 2,
+					header = "Vehicle List",
+					txt = "Takeout Vehicles",
+					params = {
+						event = "police:client:garageMenu"
+					}
+				},
+			})
+			end)
+
+-----------------------------------------------------------------------------------------------
+
 
 -- NUI Callbacks
 
 RegisterNUICallback('selectTarget', function(option, cb)
-	option = tonumber(option) or option
     SetNuiFocus(false, false)
     SetNuiFocusKeepInput(false)
 	Wait(100)
 	targetActive, success, hasFocus = false, false, false
-	if not next(sendData) then return end
-	local data = sendData[option]
-	if not data then return end
-	table_wipe(sendData)
-	CreateThread(function()
-		Wait(0)
-		if data.action then
-			data.action(data.entity)
-		elseif data.event then
-			if data.type == "client" then
-				TriggerEvent(data.event, data)
-			elseif data.type == "server" then
-				TriggerServerEvent(data.event, data)
-			elseif data.type == "command" then
-				ExecuteCommand(data.event)
-			elseif data.type == "qbcommand" then
-				TriggerServerEvent('QBCore:CallCommand', data.event, data)
-			else
-				TriggerEvent(data.event, data)
+	if sendData then
+		local data = sendData[option]
+		table_wipe(sendData)
+		CreateThread(function()
+			Wait(0)
+			if data then
+				if data.action then
+					data.action(data.entity)
+				elseif data.event then
+					if data.type == "client" then
+						TriggerEvent(data.event, data)
+					elseif data.type == "server" then
+						TriggerServerEvent(data.event, data)
+					elseif data.type == "command" then
+						ExecuteCommand(data.event)
+					elseif data.type == "qbcommand" then
+						TriggerServerEvent('QBCore:CallCommand', data.event, data)
+					else
+						TriggerEvent(data.event, data)
+					end
+				else
+					print("No trigger setup")
+				end
 			end
-		else
-			error("No trigger setup")
-		end
-	end)
+		end)
+	end
 	cb('ok')
 end)
 
-RegisterNUICallback('closeTarget', function(_, cb)
+RegisterNUICallback('closeTarget', function(data, cb)
 	SetNuiFocus(false, false)
 	SetNuiFocusKeepInput(false)
 	Wait(100)
@@ -1182,48 +1406,18 @@ RegisterNUICallback('closeTarget', function(_, cb)
 	cb('ok')
 end)
 
-RegisterNUICallback('leftTarget', function(_, cb)
-	if Config.Toggle then
-		SetNuiFocus(false, false)
-		SetNuiFocusKeepInput(false)
-		Wait(100)
-		table_wipe(sendData)
-		success, hasFocus = false, false
-	else
-		DisableTarget(true)
-	end
-	cb('ok')
-end)
-
 -- Startup thread
 
 CreateThread(function()
-	if Config.Toggle then
-		RegisterCommand('playerTarget', function()
-			if targetActive then
-				DisableTarget(true)
-			else
-				CreateThread(EnableTarget)
-			end
-		end, false)
-		RegisterKeyMapping("playerTarget", "Toggle targeting", "keyboard", Config.OpenKey)
-		TriggerEvent('chat:removeSuggestion', '/playerTarget')
-	else
-		RegisterCommand('+playerTarget', function()
-			CreateThread(EnableTarget)
-		end, false)
-		RegisterCommand('-playerTarget', DisableTarget, false)
-		RegisterKeyMapping("+playerTarget", "Enable targeting", "keyboard", Config.OpenKey)
-		TriggerEvent('chat:removeSuggestion', '/+playerTarget')
-		TriggerEvent('chat:removeSuggestion', '/-playerTarget')
-	end
+    RegisterCommand('+playerTarget', EnableTarget, false)
+    RegisterCommand('-playerTarget', DisableTarget, false)
+    RegisterKeyMapping("+playerTarget", "Enable targeting", "keyboard", Config.OpenKey)
 
-    if table.type(Config.CircleZones) ~= 'empty' then
-        for _, v in pairs(Config.CircleZones) do
+    if next(Config.CircleZones) then
+        for k, v in pairs(Config.CircleZones) do
             AddCircleZone(v.name, v.coords, v.radius, {
                 name = v.name,
                 debugPoly = v.debugPoly,
-				useZ = v.useZ,
             }, {
                 options = v.options,
                 distance = v.distance
@@ -1231,8 +1425,8 @@ CreateThread(function()
         end
     end
 
-    if table.type(Config.BoxZones) ~= 'empty' then
-        for _, v in pairs(Config.BoxZones) do
+    if next(Config.BoxZones) then
+        for k, v in pairs(Config.BoxZones) do
             AddBoxZone(v.name, v.coords, v.length, v.width, {
                 name = v.name,
                 heading = v.heading,
@@ -1246,8 +1440,8 @@ CreateThread(function()
         end
     end
 
-    if table.type(Config.PolyZones) ~= 'empty' then
-        for _, v in pairs(Config.PolyZones) do
+    if next(Config.PolyZones) then
+        for k, v in pairs(Config.PolyZones) do
             AddPolyZone(v.name, v.points, {
                 name = v.name,
                 debugPoly = v.debugPoly,
@@ -1260,17 +1454,26 @@ CreateThread(function()
         end
     end
 
-    if table.type(Config.TargetBones) ~= 'empty' then
-        for _, v in pairs(Config.TargetBones) do
+    --[[if next(Config.TargetBones) then
+        for k, v in pairs(Config.TargetBones) do
             AddTargetBone(v.bones, {
+                options = v.options,
+                distance = v.distance
+            })
+        end
+    end]]--
+
+    if next(Config.TargetEntities) then
+        for k, v in pairs(Config.TargetEntities) do
+            AddTargetEntity(v.entity, {
                 options = v.options,
                 distance = v.distance
             })
         end
     end
 
-    if table.type(Config.TargetModels) ~= 'empty' then
-        for _, v in pairs(Config.TargetModels) do
+    if next(Config.TargetModels) then
+        for k, v in pairs(Config.TargetModels) do
             AddTargetModel(v.models, {
                 options = v.options,
                 distance = v.distance
@@ -1278,19 +1481,19 @@ CreateThread(function()
         end
     end
 
-    if table.type(Config.GlobalPedOptions) ~= 'empty' then
+    if next(Config.GlobalPedOptions) then
         AddGlobalPed(Config.GlobalPedOptions)
     end
 
-    if table.type(Config.GlobalVehicleOptions) ~= 'empty' then
+    if next(Config.GlobalVehicleOptions) then
         AddGlobalVehicle(Config.GlobalVehicleOptions)
     end
 
-    if table.type(Config.GlobalObjectOptions) ~= 'empty' then
+    if next(Config.GlobalObjectOptions) then
         AddGlobalObject(Config.GlobalObjectOptions)
     end
 
-    if table.type(Config.GlobalPlayerOptions) ~= 'empty' then
+    if next(Config.GlobalPlayerOptions) then
         AddGlobalPlayer(Config.GlobalPlayerOptions)
     end
 end)
@@ -1299,75 +1502,18 @@ end)
 
 -- This is to make sure the peds spawn on restart too instead of only when you load/log-in.
 AddEventHandler('onResourceStart', function(resource)
-	if resource ~= currentResourceName then return end
-	SpawnPeds()
+	if resource == CurrentResourceName then
+		SpawnPeds()
+	end
 end)
 
 -- This will delete the peds when the resource stops to make sure you don't have random peds walking
 AddEventHandler('onResourceStop', function(resource)
-	if resource ~= currentResourceName then return end
-	DeletePeds()
+	if resource == CurrentResourceName then
+		DeletePeds()
+	end
 end)
 
 -- Debug Option
 
 if Config.Debug then Load('debug') end
-
--- qtarget interoperability
-
-local qtargetExports = {
-	["raycast"] = RaycastCamera,
-	["DisableNUI"] = DisableNUI,
-	["LeaveTarget"] = LeftTarget,
-	["DisableTarget"] = DisableTarget,
-	["DrawOutlineEntity"] = DrawOutlineEntity,
-	["CheckEntity"] = CheckEntity,
-	["CheckBones"] = CheckBones,
-	["AddCircleZone"] = AddCircleZone,
-	["AddBoxZone"] = AddBoxZone,
-	["AddPolyZone"] = AddPolyZone,
-	["AddComboZone"] = AddComboZone,
-	["AddEntityZone"] = AddEntityZone,
-	["RemoveZone"] = RemoveZone,
-	["AddTargetBone"] = AddTargetBone,
-	["RemoveTargetBone"] = RemoveTargetBone,
-	["AddTargetEntity"] = AddTargetEntity,
-	["RemoveTargetEntity"] = RemoveTargetEntity,
-	["AddTargetModel"] = AddTargetModel,
-	["RemoveTargetModel"] = RemoveTargetModel,
-	["Ped"] = AddGlobalPed,
-	["Vehicle"] = AddGlobalVehicle,
-	["Object"] = AddGlobalObject,
-	["Player"] = AddGlobalPlayer,
-	["RemovePed"] = RemoveGlobalPed,
-	["RemoveVehicle"] = RemoveGlobalVehicle,
-	["RemoveObject"] = RemoveGlobalObject,
-	["RemovePlayer"] = RemoveGlobalPlayer,
-	["IsTargetActive"] = IsTargetActive,
-	["IsTargetSuccess"] = IsTargetSuccess,
-	["GetType"] = GetGlobalTypeData,
-	["GetZone"] = GetZoneData,
-	["GetTargetBone"] = GetTargetBoneData,
-	["GetTargetEntity"] = GetTargetEntityData,
-	["GetTargetModel"] = GetTargetModelData,
-	["GetPed"] = GetGlobalPedData,
-	["GetVehicle"] = GetGlobalVehicleData,
-	["GetObject"] = GetGlobalObjectData,
-	["GetPlayer"] = GetGlobalPlayerData,
-	["UpdateType"] = UpdateGlobalTypeData,
-	["UpdateZoneOptions"] = UpdateZoneData,
-	["UpdateTargetBone"] = UpdateTargetBoneData,
-	["UpdateTargetEntity"] = UpdateTargetEntityData,
-	["UpdateTargetModel"] = UpdateTargetModelData,
-	["UpdatePed"] = UpdateGlobalPedData,
-	["UpdateVehicle"] = UpdateGlobalVehicleData,
-	["UpdateObject"] = UpdateGlobalObjectData,
-	["UpdatePlayer"] = UpdateGlobalPlayerData,
-	["AllowTargeting"] = AllowTargeting
-}
-
-for exportName, func in pairs(qtargetExports) do
-	AddEventHandler(('__cfx_export_qtarget_%s'):format(exportName), function(setCB)
-		setCB(func)
-	end)
-end
