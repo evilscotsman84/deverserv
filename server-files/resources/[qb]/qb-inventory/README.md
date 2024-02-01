@@ -1,446 +1,114 @@
-# qb-inventory
+# PS-Inventory
 
-# License
+lj-Inventory has been fully redesigned by [OK1ez](https://github.com/OK1ez), under the name ps-inventory.
 
-    QBCore Framework
-    Copyright (C) 2021 Joshua Eger
+Future updates will be coming and we will of course support all normal monitor sizes.
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+# Previews
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+### Simple item guidelines (found in main directory ps-inventory)
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <https://www.gnu.org/licenses/>
+![ps-inventory Guideline](https://user-images.githubusercontent.com/91661118/146315681-c67f542d-e2bc-43ca-9957-7f1971b84268.png)
 
-## Dependencies
-- [qb-core](https://github.com/qbcore-framework/qb-core)
-- [qb-logs](https://github.com/qbcore-framework/qb-logs) - For logging transfer and other history
-- [qb-traphouse](https://github.com/qbcore-framework/qb-traphouse) - Trap house system for qbcore
-- [qb-radio](https://github.com/qbcore-framework/qb-radio) - Radio system for communication
-- [qb-drugs](https://github.com/qbcore-framework/qb-drugs) -  Drugs and Weed Planting System
-- [qb-shops](https://github.com/qbcore-framework/qb-shops) - Needed in order to add shops
+### Full Inventory
 
-## Screenshots
-![General](https://i.imgur.com/GR0MDFN.png)
-![ID Card](https://i.imgur.com/C6gAOWi.png)
-![Weapon](https://i.imgur.com/RbCvHJb.png)
-![Shop](https://i.imgur.com/7Da7UEX.png)
-![Crafting](https://i.imgur.com/peONaL9.png)
-![Glovebox](https://i.imgur.com/LjDEYWa.png)
-![Trunk](https://i.imgur.com/IoGYZbv.png)
+![image](https://github.com/Project-Sloth/ps-inventory/assets/82112471/fda2588d-e468-4fd5-8bf5-2f584f059609)
 
-## Features
-- Item crafting
-- Weapon attachment crafting
-- Stashes (Personal and/or Shared)
-- Vehicle Trunk & Glovebox
-- Weapon serial number
-- Shops
-- Item Drops
+### Options Menu
 
-## Installation
-### Manual
-- Download the script and put it in the `[qb]` directory.
-- Import `qb-inventory.sql` in your database
-- Add the following code to your server.cfg/resouces.cfg
+![image](https://github.com/Project-Sloth/ps-inventory/assets/82112471/1782f97a-27e6-441b-90a1-ff150cd846e2)
+
+### Hotbar Slots
+
+![image](https://github.com/Project-Sloth/ps-inventory/assets/82112471/c0a77f4a-f482-42f5-a5da-1f3571d14130)
+
+### Inventory Glovebox
+
+![image](https://github.com/Project-Sloth/ps-inventory/assets/82112471/432f8c79-1a9f-44d1-8062-50b596194752)
+
+### Inventory Trunk
+
+![image](https://github.com/Project-Sloth/ps-inventory/assets/82112471/f9c78e49-ec51-4d55-9ac0-b7058951d31a)
+
+# Key Features
+
+* ALL IMAGES FOLLOW THE SAME DIMENSIONS
+* Easy Photoshop guideline template for creating custom images within ps-inventory
+* Custom brand logo above option buttons
+* Options menu
+* Help box 
+* Custom inventory images (more always being added in each new update)
+* Default weight icon easily changeable with Font Awesome icons
+* Hotkey numbers visible in inventory and hotbar slots
+* Weight progress bar
+* Tooltip has a determined height (so it won't ever go higher than visible or cut off)
+* Text overflow ellipsis used (so your product titles with never overlap the containers and instead do "...")
+* Blurred inventory background
+* Elements of NoPixel 3.5 design ideas interwoven
+
+# How to install ps-inventory (Latest QBCore Update)
+
+* Download `ps-inventory` from our GitHub
+* Make sure you have the latest update of [qb-core](https://github.com/qbcore-framework/qb-core)
+* Make sure you have the latest update of [qb-smallresources](https://github.com/qbcore-framework/qb-smallresources)
+* Make sure you have the latest update of [qb-weapons](https://github.com/qbcore-framework/qb-weapons)
+* Drag `ps-inventory` into your resources folder or any subfolder
+* Make sure that the folder is named `ps-inventory` and **not** `ps-inventory-main`
+* Replace all occurrences of `qb-inventory` with `ps-inventory`.<br>The example below uses Visual Studio Code to replace all instances.
+
+![image](https://github.com/Z3rio/ps-inventory/assets/54480523/00fa21a5-4be2-443f-aff2-4b3202b662dc)
+
+## Set up the decay system
+
+If you want the decay system to work, then please read the information below, otherwise it won't work.
+
+You need to add a decay value for all items in your `qb-core/shared/items.lua` file, the variable stands for the number of days it takes to decay.
+
+### Examples:
+
+#### Example of what you have to add
+
+```lua
+-- decay = The number of days it takes for an item to decay
+-- delete = If set to true, the item will be removed once it decays
+["decay"] = 28.0, ["delete"] = true
 ```
-ensure qb-core
-ensure qb-logs
-ensure qb-inventory
-ensure qb-traphouse
-ensure qb-radio
-ensure qb-drugs
-ensure qb-shops
+
+#### Example with the full item in QB-Core's shared file
+
+```lua
+['sandwich'] = {['name'] = 'sandwich', ['label'] = 'Sandwich', ['weight'] = 200, ['type'] = 'item', ['image'] = 'sandwich.png', ['unique'] = false, ['useable'] = true, ['shouldClose'] = true,	['combinable'] = nil, ['description'] = 'Nice bread for your stomach', ["decay"] = 3.0, ["delete"] = true},
 ```
 
-## Configuration
-```
-Config = {}
+In this example, the sandwich item would take 3 days to decay and once it does, it would be removed.
 
-Config.UseTarget = GetConvar('UseTarget', 'false') == 'true' -- Use qb-target interactions (don't change this, go to your server.cfg and add `setr UseTarget true` to use this and just that from true to false or the other way around)
+# Dependencies
 
-Config.MaxInventoryWeight = 120000 -- Max weight a player can carry (default 120kg, written in grams)
-Config.MaxInventorySlots = 41 -- Max inventory slots for a player
+* [qbcore framework](https://github.com/qbcore-framework)
+* [qb-target](https://github.com/BerkieBb/qb-target)
+* [qb-core](https://github.com/qbcore-framework/qb-core)
+* [qb-logs](https://github.com/qbcore-framework/qb-logs)
+* [qb-traphouse](https://github.com/qbcore-framework/qb-traphouse)
+* [qb-radio](https://github.com/qbcore-framework/qb-radio)
+* [qb-drugs](https://github.com/qbcore-framework/qb-drugs)
+* [qb-shops](https://github.com/qbcore-framework/qb-shops)
 
-Config.CleanupDropTime = 15 * 60 -- How many seconds it takes for drops to be untouched before being deleted
-Config.MaxDropViewDistance = 12.5 -- The distance in GTA Units that a drop can be seen
-Config.UseItemDrop = false -- This will enable item object to spawn on drops instead of markers
-Config.ItemDropObject = `prop_nigel_bag_pickup` -- if Config.UseItemDrop is true, this will be the prop that spawns for the item
+## Performance
 
-Config.VendingObjects = {
-    "prop_vend_soda_01",
-    "prop_vend_soda_02",
-    "prop_vend_water_01"
-}
+Runs at ~ 0.00 to 0.01 ms if you have more optimization suggestions feel free to reach out
 
-Config.BinObjects = {
-    "prop_bin_05a",
-}
+# Credits
 
-Config.CraftingObject = `prop_toolchest_05`
+* [OK1ez](https://github.com/OK1ez) for full redesign. 
+* ihyajb (Aj) for [original version](https://github.com/ihyajb/aj-inventory)
+* Jay for [decay](https://github.com/tnj-development/inventory)
+* i-kulgu for [updated decay](https://github.com/i-kulgu/qb-inventory-decay)
+* [OnlyCats](https://github.com/onlycats) who helped reorganize and also created some custom images.
 
-Config.VendingItem = {
-    [1] = {
-        name = "kurkakola",
-        price = 4,
-        amount = 50,
-        info = {},
-        type = "item",
-        slot = 1,
-    },
-    [2] = {
-        name = "water_bottle",
-        price = 4,
-        amount = 50,
-        info = {},
-        type = "item",
-        slot = 2,
-    },
-}
+# Issues and Suggestions
 
-Config.CraftingItems = {
-    [1] = {
-        name = "lockpick",
-        amount = 50,
-        info = {},
-        costs = {
-            ["metalscrap"] = 22,
-            ["plastic"] = 32,
-        },
-        type = "item",
-        slot = 1,
-        threshold = 0,
-        points = 1,
-    },
-    [2] = {
-        name = "screwdriverset",
-        amount = 50,
-        info = {},
-        costs = {
-            ["metalscrap"] = 30,
-            ["plastic"] = 42,
-        },
-        type = "item",
-        slot = 2,
-        threshold = 0,
-        points = 2,
-    },
-    [3] = {
-        name = "electronickit",
-        amount = 50,
-        info = {},
-        costs = {
-            ["metalscrap"] = 30,
-            ["plastic"] = 45,
-            ["aluminum"] = 28,
-        },
-        type = "item",
-        slot = 3,
-        threshold = 0,
-        points = 3,
-    },
-    [4] = {
-        name = "radioscanner",
-        amount = 50,
-        info = {},
-        costs = {
-            ["electronickit"] = 2,
-            ["plastic"] = 52,
-            ["steel"] = 40,
-        },
-        type = "item",
-        slot = 4,
-        threshold = 0,
-        points = 4,
-    },
-    [5] = {
-        name = "gatecrack",
-        amount = 50,
-        info = {},
-        costs = {
-            ["metalscrap"] = 10,
-            ["plastic"] = 50,
-            ["aluminum"] = 30,
-            ["iron"] = 17,
-            ["electronickit"] = 2,
-        },
-        type = "item",
-        slot = 5,
-        threshold = 110,
-        points = 5,
-    },
-    [6] = {
-        name = "handcuffs",
-        amount = 50,
-        info = {},
-        costs = {
-            ["metalscrap"] = 36,
-            ["steel"] = 24,
-            ["aluminum"] = 28,
-        },
-        type = "item",
-        slot = 6,
-        threshold = 160,
-        points = 6,
-    },
-    [7] = {
-        name = "repairkit",
-        amount = 50,
-        info = {},
-        costs = {
-            ["metalscrap"] = 32,
-            ["steel"] = 43,
-            ["plastic"] = 61,
-        },
-        type = "item",
-        slot = 7,
-        threshold = 200,
-        points = 7,
-    },
-    [8] = {
-        name = "pistol_ammo",
-        amount = 50,
-        info = {},
-        costs = {
-            ["metalscrap"] = 50,
-            ["steel"] = 37,
-            ["copper"] = 26,
-        },
-        type = "item",
-        slot = 8,
-        threshold = 250,
-        points = 8,
-    },
-    [9] = {
-        name = "ironoxide",
-        amount = 50,
-        info = {},
-        costs = {
-            ["iron"] = 60,
-            ["glass"] = 30,
-        },
-        type = "item",
-        slot = 9,
-        threshold = 300,
-        points = 9,
-    },
-    [10] = {
-        name = "aluminumoxide",
-        amount = 50,
-        info = {},
-        costs = {
-            ["aluminum"] = 60,
-            ["glass"] = 30,
-        },
-        type = "item",
-        slot = 10,
-        threshold = 300,
-        points = 10,
-    },
-    [11] = {
-        name = "armor",
-        amount = 50,
-        info = {},
-        costs = {
-            ["iron"] = 33,
-            ["steel"] = 44,
-            ["plastic"] = 55,
-            ["aluminum"] = 22,
-        },
-        type = "item",
-        slot = 11,
-        threshold = 350,
-        points = 11,
-    },
-    [12] = {
-        name = "drill",
-        amount = 50,
-        info = {},
-        costs = {
-            ["iron"] = 50,
-            ["steel"] = 50,
-            ["screwdriverset"] = 3,
-            ["advancedlockpick"] = 2,
-        },
-        type = "item",
-        slot = 12,
-        threshold = 1750,
-        points = 12,
-    },
-}
+Please use the GitHub issues system to report issues or make suggestions, when making suggestions, please keep [Suggestion] in the title to make it clear that it is a suggestion.
 
-Config.AttachmentCraftingLocation = vector3(88.91, 3743.88, 40.77)
+## Connect with us
 
-Config.AttachmentCrafting = {
-    ["items"] = {
-        [1] = {
-            name = "pistol_extendedclip",
-            amount = 50,
-            info = {},
-            costs = {
-                ["metalscrap"] = 140,
-                ["steel"] = 250,
-                ["rubber"] = 60,
-            },
-            type = "item",
-            slot = 1,
-            threshold = 0,
-            points = 1,
-        },
-        [2] = {
-            name = "pistol_suppressor",
-            amount = 50,
-            info = {},
-            costs = {
-                ["metalscrap"] = 165,
-                ["steel"] = 285,
-                ["rubber"] = 75,
-            },
-            type = "item",
-            slot = 2,
-            threshold = 10,
-            points = 2,
-        },
-        [3] = {
-            name = "smg_extendedclip",
-            amount = 50,
-            info = {},
-            costs = {
-                ["metalscrap"] = 190,
-                ["steel"] = 305,
-                ["rubber"] = 85,
-            },
-            type = "item",
-            slot = 3,
-            threshold = 25,
-            points = 3,
-        },
-        [4] = {
-            name = "microsmg_extendedclip",
-            amount = 50,
-            info = {},
-            costs = {
-                ["metalscrap"] = 205,
-                ["steel"] = 340,
-                ["rubber"] = 110,
-            },
-            type = "item",
-            slot = 4,
-            threshold = 50,
-            points = 4,
-        },
-        [5] = {
-            name = "smg_drum",
-            amount = 50,
-            info = {},
-            costs = {
-                ["metalscrap"] = 230,
-                ["steel"] = 365,
-                ["rubber"] = 130,
-            },
-            type = "item",
-            slot = 5,
-            threshold = 75,
-            points = 5,
-        },
-        [6] = {
-            name = "smg_scope",
-            amount = 50,
-            info = {},
-            costs = {
-                ["metalscrap"] = 255,
-                ["steel"] = 390,
-                ["rubber"] = 145,
-            },
-            type = "item",
-            slot = 6,
-            threshold = 100,
-            points = 6,
-        },
-        [7] = {
-            name = "assaultrifle_extendedclip",
-            amount = 50,
-            info = {},
-            costs = {
-                ["metalscrap"] = 270,
-                ["steel"] = 435,
-                ["rubber"] = 155,
-                ["smg_extendedclip"] = 1,
-            },
-            type = "item",
-            slot = 7,
-            threshold = 150,
-            points = 7,
-        },
-        [8] = {
-            name = "assaultrifle_drum",
-            amount = 50,
-            info = {},
-            costs = {
-                ["metalscrap"] = 300,
-                ["steel"] = 469,
-                ["rubber"] = 170,
-                ["smg_extendedclip"] = 2,
-            },
-            type = "item",
-            slot = 8,
-            threshold = 200,
-            points = 8,
-        },
-    }
-}
-
-BackEngineVehicles = {
-    [`ninef`] = true,
-    [`adder`] = true,
-    [`vagner`] = true,
-    [`t20`] = true,
-    [`infernus`] = true,
-    [`zentorno`] = true,
-    [`reaper`] = true,
-    [`comet2`] = true,
-    [`comet3`] = true,
-    [`jester`] = true,
-    [`jester2`] = true,
-    [`cheetah`] = true,
-    [`cheetah2`] = true,
-    [`prototipo`] = true,
-    [`turismor`] = true,
-    [`pfister811`] = true,
-    [`ardent`] = true,
-    [`nero`] = true,
-    [`nero2`] = true,
-    [`tempesta`] = true,
-    [`vacca`] = true,
-    [`bullet`] = true,
-    [`osiris`] = true,
-    [`entityxf`] = true,
-    [`turismo2`] = true,
-    [`fmj`] = true,
-    [`re7b`] = true,
-    [`tyrus`] = true,
-    [`italigtb`] = true,
-    [`penetrator`] = true,
-    [`monroe`] = true,
-    [`ninef2`] = true,
-    [`stingergt`] = true,
-    [`surfer`] = true,
-    [`surfer2`] = true,
-    [`gp1`] = true,
-    [`autarch`] = true,
-    [`tyrant`] = true
-}
-
-Config.MaximumAmmoValues = {
-    ["pistol"] = 250,
-    ["smg"] = 250,
-    ["shotgun"] = 200,
-    ["rifle"] = 250,
-}
-```
+Join our [**Discord**](https://discord.gg/projectsloth) for updates, support, and special early testing!
