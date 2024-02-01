@@ -166,32 +166,42 @@ function lib.progressBar(data)
     while progress ~= nil do Wait(0) end
 
     if not interruptProgress(data) then
-        SendNUIMessage({
-            action = 'progress',
-            data = {
-                label = data.label,
-                duration = data.duration
-            }
-        })
-
-        return startProgress(data)
-    end
-end
-
----@param data ProgressProps
----@return boolean?
-function lib.progressCircle(data)
-    while progress ~= nil do Wait(0) end
-
-    if not interruptProgress(data) then
-        SendNUIMessage({
-            action = 'circleProgress',
-            data = {
-                duration = data.duration,
-                position = data.position,
-                label = data.label
-            }
-        })
+            playerState.invBusy = true
+            exports['progressbar']:Progress({
+            name = "random_task",
+            duration = data.duration,
+            label = data.label,
+            useWhileDead = false,
+            canCancel = true,
+            controlDisables = {
+                disableMovement = false,
+                disableCarMovement = false,
+                disableMouse = false,
+                disableCombat = false,
+            },
+         }, function(cancelled)
+            if not cancelled then
+                -- finished
+                --SendNUIMessage({
+                    --action = 'progress',
+                    --data = {
+                        --label = data.label,
+                        --duration = data.duration
+                        --duration = -100
+                    --}
+                --})
+                progress = nil
+                playerState.invBusy = false
+            else
+                -- cancelled
+                print("omg")
+                -- Reset progress whether it's finished or cancelled
+                progress = false
+                Citizen.Wait(1000)
+                progress = nil
+                playerState.invBusy = false
+            end
+         end)
 
         return startProgress(data)
     end
