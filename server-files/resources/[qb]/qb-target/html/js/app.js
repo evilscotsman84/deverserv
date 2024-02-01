@@ -1,14 +1,16 @@
 const Targeting = Vue.createApp({
     data() {
         return {
-            Show: false, // leave this
+            Show: false,
             ChangeTextIconColor: false, // This is if you want to change the color of the icon next to the option text with the text color
-            StandardEyeIcon: "far fa-eye", // This is the default eye icon
-            CurrentIcon: this.StandardEyeIcon, // leave this
-            SuccessColor: "rgb(30, 144, 255)", // This is the color when the target has found the option
-            StandardColor: "white", // This is the standard color, change this to the same as the StandardColor if you have changed it
+            StandardEyeIcon: 'https://media.discordapp.net/attachments/1180729025665171530/1201578897947508776/Frame_82_6.png', // Instead of icon it's using a image source found in HTML 
+            CurrentIcon: 'https://media.discordapp.net/attachments/1180729025665171530/1201578897947508776/Frame_82_6.png', // Instead of icon it's using a image source found in HTML
+            SuccessIcon: 'https://media.discordapp.net/attachments/1180729025665171530/1201578897460953198/Frame_83_1.png', // Instead of icon it's using a image source found in HTML
+            SuccessColor: "#00F8BC",
+            StandardColor: "white",
+            TargetHTML: "",
             TargetEyeStyleObject: {
-                color: this.StandardColor, // leave this
+                color: "white", // This is the standardcolor, change this to the same as the StandardColor if you have changed it
             },
         }
     },
@@ -83,8 +85,10 @@ const Targeting = Vue.createApp({
             if (element.id) {
                 const split = element.id.split("-");
                 if (split[0] === "target" && split[1] === "option") {
-                    event.target.style.color = this.SuccessColor;
-                    if (this.ChangeTextIconColor) document.getElementById(`target-icon-${index}`).style.color = this.SuccessColor;
+                    event.target.style.background = "linear-gradient(#009A75ca, #00D3A0ca)";
+                    element.style.border = "solid .1vh #00FFC1";
+                    element.style.cursor = "pointer";
+                    if (this.ChangeTextIconColor) document.getElementById(`target-option-${index}`).style.background = "linear-gradient(#009A75ca, #00D3A0ca)";
                 }
             }
         });
@@ -94,8 +98,9 @@ const Targeting = Vue.createApp({
             if (element.id) {
                 const split = element.id.split("-");
                 if (split[0] === "target" && split[1] === "option") {
-                    element.style.color = this.StandardColor;
-                    if (this.ChangeTextIconColor) document.getElementById(`target-icon-${index}`).style.color = this.StandardColor;
+                    element.style.background = "linear-gradient(#00896960, #00bf8f60)";
+                    element.style.border = "solid .1vh #00bf8f20";
+                    if (this.ChangeTextIconColor) document.getElementById(`target-option-${index}`).style.background = "linear-gradient(#00896960, #00bf8f60)";
                 }
             }
         });
@@ -115,8 +120,11 @@ const Targeting = Vue.createApp({
         },
 
         FoundTarget(item) {
-            if (item.data) this.CurrentIcon = item.data;
-            else this.CurrentIcon = this.StandardEyeIcon;
+            if (item.data) {
+                this.CurrentIcon = item.data;
+            } else {
+                this.CurrentIcon = this.SuccessIcon;
+            }
             this.TargetEyeStyleObject.color = this.SuccessColor;
         },
 
@@ -128,16 +136,16 @@ const Targeting = Vue.createApp({
 
                     if (this.ChangeTextIconColor) {
                         this.targetLabel.innerHTML +=
-                        `<div id="target-option-${index}" style="margin-bottom: 1vh; color: ${this.StandardColor}">
-                            <span id="target-icon-${index}" style="color: ${this.StandardColor}">
+                        `<div id="target-option-${index}" style=" color: white; background: linear-gradient(#00896960, #00bf8f60); width:17vh border:solid .1vh #00bf8f20; border-radius: .3vh ;padding: .5vh .9vh; margin-bottom: .5vh;">
+                            <span id="target-icon-${index}" style="color: ${this.StandardColor};">
                                 <i class="${itemData.icon}"></i>
                             </span>
                             ${itemData.label}
                         </div>`;
                     } else {
                         this.targetLabel.innerHTML +=
-                        `<div id="target-option-${index}" style="margin-bottom: 1vh; color: ${this.StandardColor}">
-                            <span id="target-icon-${index}" style="color: ${this.SuccessColor}">
+                        `<div id="target-option-${index}" style=" color: white; background: linear-gradient(#00896960, #00bf8f60); width:17vh; border:solid .1vh #00bf8f20; border-radius: .3vh ;padding: .5vh .9vh; margin-bottom: .5vh;">
+                            <span id="target-icon-${index}" style="color: ${this.SuccessColor};">
                                 <i class="${itemData.icon}"></i>
                             </span>
                             ${itemData.label}
