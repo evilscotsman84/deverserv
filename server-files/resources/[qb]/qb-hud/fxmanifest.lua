@@ -11,7 +11,11 @@ shared_scripts {
     'config.lua'
 }
 
-client_script 'client.lua'
+client_scripts {  
+    'client.lua',
+    'HRSGears.lua' 
+}
+
 server_script 'server.lua'
 
 ui_page 'html/index.html'
