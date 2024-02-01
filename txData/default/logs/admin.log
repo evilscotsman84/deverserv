@@ -1,0 +1,10 @@
+
+================================================================
+======== txAdmin v7.0.0 atop fxserver 7388 Starting - 01/02/2024, 04:28:37
+================================================================
+[04:29:35][john_smith15] created admins file
+[04:31:01][john_smith15] Changing global settings via setup stepper and started Deployer.
+[04:31:18][john_smith15] Setting recipe.
+[04:31:40][john_smith15] Running recipe.
+[04:36:59][john_smith15] Changing monitor settings.
+[04:37:22][john_smith15] Completed and committed server deploy.
