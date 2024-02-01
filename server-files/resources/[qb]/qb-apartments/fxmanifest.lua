@@ -2,7 +2,7 @@ fx_version 'cerulean'
 game 'gta5'
 
 description 'QB-Apartments'
-version '2.2.1'
+version '2.2.0'
 
 shared_scripts {
     'config.lua',
@@ -26,7 +26,7 @@ client_scripts {
 dependencies {
     'qb-core',
     'qb-interior',
-    'qb-weathersync',
+    'qb-weathersync'
 }
 
 lua54 'yes'
