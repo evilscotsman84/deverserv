@@ -1,0 +1,53 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<CWeaponModelInfo__InitDataList>
+    <InitDatas>
+        <Item>
+            <modelName>markomods-sa80</modelName>
+            <txdName>markomods-sa80</txdName>
+            <ptfxAssetName>NULL</ptfxAssetName>
+            <lodDist value='75'/>
+        </Item>
+		<Item>
+            <modelName>markomods-sa80-mag1</modelName>
+            <txdName>markomods-sa80-mag1</txdName>
+            <ptfxAssetName>NULL</ptfxAssetName>
+            <lodDist value='75'/>
+        </Item>
+		<Item>
+            <modelName>markomods-sa80-handguard1</modelName>
+            <txdName>markomods-sa80-handguards</txdName>
+            <ptfxAssetName>NULL</ptfxAssetName>
+            <lodDist value='75'/>
+        </Item>
+		<Item>
+            <modelName>markomods-sa80-handguard2</modelName>
+            <txdName>markomods-sa80-handguards</txdName>
+            <ptfxAssetName>NULL</ptfxAssetName>
+            <lodDist value='75'/>
+        </Item>
+		<Item>
+            <modelName>markomods-sa80-scope1</modelName>
+            <txdName>markomods-sa80-scopes</txdName>
+            <ptfxAssetName>NULL</ptfxAssetName>
+            <lodDist value='75'/>
+        </Item>
+		<Item>
+            <modelName>markomods-sa80-scope2</modelName>
+            <txdName>markomods-sa80-scopes</txdName>
+            <ptfxAssetName>NULL</ptfxAssetName>
+            <lodDist value='75'/>
+        </Item>
+        <Item>
+            <modelName>markomods-sa80-grip1</modelName>
+            <txdName>markomods-sa80-grips</txdName>
+            <ptfxAssetName>NULL</ptfxAssetName>
+            <lodDist value='75'/>
+        </Item>
+        <Item>
+            <modelName>markomods-sa80-grip2</modelName>
+            <txdName>markomods-sa80-grips</txdName>
+            <ptfxAssetName>NULL</ptfxAssetName>
+            <lodDist value='75'/>
+        </Item>
+    </InitDatas>
+</CWeaponModelInfo__InitDataList>

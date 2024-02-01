@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF - 8"?>
+
+<CWeaponComponentInfoBlob>
+	<Infos>
+		<Item type='CWeaponComponentClipInfo'>
+		  <Name>COMPONENT_MARKOMODS_SA80_CLIP_01</Name>
+		  <Model>markomods-sa80-mag1</Model>
+		  <LocName>MAG</LocName>
+		  <LocDesc>MAG</LocDesc>
+		  <AttachBone>AAPClip</AttachBone>
+		  <WeaponAttachBone>WAPClip</WeaponAttachBone>
+		  <AccuracyModifier type='NULL' />
+		  <DamageModifier type='NULL' />
+		  <bShownOnWheel value='false' />
+		  <CreateObject value='true' />
+		  <HudDamage value='0' />
+		  <HudSpeed value='0' />
+		  <HudCapacity value='0' />
+		  <HudAccuracy value='0' />
+		  <HudRange value='0' />
+		  <ClipSize value='30' />
+		  <ReloadData ref='RELOAD_DEFAULT' />
+        </Item>
+		<Item type="CWeaponComponentInfo">
+          <Name>COMPONENT_MARKOMODS_SA80_HANDGUARD_01</Name>
+		  <Model>markomods-sa80-handguard1</Model>
+          <LocName>HANDGUARD</LocName>
+          <LocDesc>HANDGUARD</LocDesc>
+          <AttachBone>AAPGrip_2</AttachBone>
+          <WeaponAttachBone>WAPGrip_2</WeaponAttachBone>
+          <AccuracyModifier type="NULL"/>
+          <DamageModifier type="NULL"/>
+          <bShownOnWheel value="true"/>
+          <CreateObject value="true"/>
+          <HudDamage value="0"/>
+          <HudSpeed value="0"/>
+          <HudCapacity value="0"/>
+          <HudAccuracy value="5"/>
+          <HudRange value="0"/>
+        </Item>
+		<Item type="CWeaponComponentInfo">
+          <Name>COMPONENT_MARKOMODS_SA80_HANDGUARD_02</Name>
+		  <Model>markomods-sa80-handguard2</Model>
+          <LocName>HANDGUARD</LocName>
+          <LocDesc>HANDGUARD</LocDesc>
+          <AttachBone>AAPGrip_2</AttachBone>
+          <WeaponAttachBone>WAPGrip_2</WeaponAttachBone>
+          <AccuracyModifier type="NULL"/>
+          <DamageModifier type="NULL"/>
+          <bShownOnWheel value="true"/>
+          <CreateObject value="true"/>
+          <HudDamage value="0"/>
+          <HudSpeed value="0"/>
+          <HudCapacity value="0"/>
+          <HudAccuracy value="5"/>
+          <HudRange value="0"/>
+        </Item>
+		<Item type="CWeaponComponentInfo">
+          <Name>COMPONENT_MARKOMODS_SA80_GRIP_01</Name>
+		  <Model>markomods-sa80-grip1</Model>
+          <LocName>GRIP</LocName>
+          <LocDesc>GRIP</LocDesc>
+          <AttachBone>AAPGrip</AttachBone>
+          <WeaponAttachBone>WAPGrip</WeaponAttachBone>
+          <AccuracyModifier type="NULL"/>
+          <DamageModifier type="NULL"/>
+          <bShownOnWheel value="true"/>
+          <CreateObject value="true"/>
+          <HudDamage value="0"/>
+          <HudSpeed value="0"/>
+          <HudCapacity value="0"/>
+          <HudAccuracy value="5"/>
+          <HudRange value="0"/>
+        </Item>
+		<Item type="CWeaponComponentInfo">
+          <Name>COMPONENT_MARKOMODS_SHARED_GRIP_01</Name>
+		  <Model>markomods-sa80-grip1</Model>
+          <LocName>GRIP</LocName>
+          <LocDesc>GRIP</LocDesc>
+          <AttachBone>AAPGrip</AttachBone>
+          <WeaponAttachBone>WAPGrip</WeaponAttachBone>
+          <AccuracyModifier type="NULL"/>
+          <DamageModifier type="NULL"/>
+          <bShownOnWheel value="true"/>
+          <CreateObject value="true"/>
+          <HudDamage value="0"/>
+          <HudSpeed value="0"/>
+          <HudCapacity value="0"/>
+          <HudAccuracy value="5"/>
+          <HudRange value="0"/>
+        </Item>		
+		<Item type="CWeaponComponentInfo">
+          <Name>COMPONENT_MARKOMODS_SA80_GRIP_02</Name>
+		  <Model>markomods-sa80-grip2</Model>
+          <LocName>GRIP</LocName>
+          <LocDesc>GRIP</LocDesc>
+          <AttachBone>AAPGrip</AttachBone>
+          <WeaponAttachBone>WAPGrip</WeaponAttachBone>
+          <AccuracyModifier type="NULL"/>
+          <DamageModifier type="NULL"/>
+          <bShownOnWheel value="true"/>
+          <CreateObject value="true"/>
+          <HudDamage value="0"/>
+          <HudSpeed value="0"/>
+          <HudCapacity value="0"/>
+          <HudAccuracy value="5"/>
+          <HudRange value="0"/>
+        </Item>
+		<Item type="CWeaponComponentScopeInfo">
+			<Name>COMPONENT_MARKOMODS_SA80_SCOPE_01</Name>
+			<Model>markomods-sa80-scope1</Model>
+			<LocName>WCT_SCOPE_MED</LocName>
+			<LocDesc>WCD_SCOPE_MED</LocDesc>
+			<AttachBone>AAPScop</AttachBone>
+			<WeaponAttachBone>WAPScop</WeaponAttachBone>
+			<AccuracyModifier type="NULL"/>
+			<DamageModifier type="NULL"/>
+			<bShownOnWheel value="true"/>
+			<CreateObject value="true"/>
+			<HudDamage value="0"/>
+			<HudSpeed value="0"/>
+			<HudCapacity value="0"/>
+			<HudAccuracy value="5"/>
+			<HudRange value="0"/>
+			<CameraHash/>
+			<RecoilShakeAmplitude value="0.280000"/>
+			<Reticule value="0"/>
+			<ReticuleHash/>
+		</Item>
+		<Item type="CWeaponComponentScopeInfo">
+			<Name>COMPONENT_MARKOMODS_SA80_SCOPE_02</Name>
+			<Model>markomods-sa80-scope2</Model>
+			<LocName>WCT_SCOPE_MED</LocName>
+			<LocDesc>WCD_SCOPE_MED</LocDesc>
+			<AttachBone>AAPScop</AttachBone>
+			<WeaponAttachBone>WAPScop</WeaponAttachBone>
+			<AccuracyModifier type="NULL"/>
+			<DamageModifier type="NULL"/>
+			<bShownOnWheel value="true"/>
+			<CreateObject value="true"/>
+			<HudDamage value="0"/>
+			<HudSpeed value="0"/>
+			<HudCapacity value="0"/>
+			<HudAccuracy value="5"/>
+			<HudRange value="0"/>
+			<CameraHash/>
+			<RecoilShakeAmplitude value="0.280000"/>
+			<Reticule value="0"/>
+			<ReticuleHash/>
+		</Item>
+	</Infos>
+	<InfoBlobName/>
+</CWeaponComponentInfoBlob>
+

@@ -1,1 +1,2 @@
-# Chat
+# qb-chat
+NoPixel new Chat
