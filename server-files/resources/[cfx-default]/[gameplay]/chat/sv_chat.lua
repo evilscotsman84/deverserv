@@ -1,5 +1,5 @@
 local toggled = false
-local QBCore = exports['qb-core']:GetCoreObject()
+---local QBCore = exports['qb-core']:GetCoreObject()
 
 RegisterServerEvent('chat:init')
 RegisterServerEvent('chat:addTemplate')
