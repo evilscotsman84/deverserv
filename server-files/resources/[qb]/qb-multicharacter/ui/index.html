@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter">
+    <link href="https://fonts.googleapis.com/css2?family=Lexend+Exa:wght@700&family=Lexend:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="webkit.css">
+</head>
+
+<body style="display: block;">
+    <div id="container" class="container">
+        <div class="character-background">
+            <img class="image_unkown" src="images/unkown.png">
+            <div id="characterAvailable" style="display: none;">
+                <div class="character-text">Necmi Boru</div>
+                <div class="character-citizen">#SH10423</div>
+
+                <div class="character-information">
+                    <div class="character-info">
+                        <span class="info-label">Gender</span>
+                        <span class="info-value" id="gender">Male</span>
+                    </div>
+                    <div class="character-info right">
+                        <span class="info-label">Birthday</span>
+                        <span class="info-value" id="dob">01 January 1881</span>
+                    </div>
+                </div>
+
+                <div class="character-information">
+                    <div class="character-info">
+                        <span class="info-label">Cash</span>
+                        <span class="info-value" id="cash">$235.00</span>
+                    </div>
+                    <div class="character-info right">
+                        <span class="info-label">Phone Number</span>
+                        <span class="info-value" id="phonenum">4169326</span>
+                    </div>
+                </div>
+
+                <div class="character-information">
+                    <div class="character-info">
+                        <span class="info-label">Bank</span>
+                        <span class="info-value" id="bank">$923,905.00</span>
+                    </div>
+                    <div class="character-info right">
+                        <span class="info-label">Nationality</span>
+                        <span class="info-value" id="nationality">United States</span>
+                    </div>
+                </div>
+
+                <div class="character-information">
+                    <div class="character-info">
+                        <span class="info-label">Gang</span>
+                        <span class="info-value" id="olusum">Not found</span>
+                    </div>
+                    <div class="character-info right">
+                        <span class="info-label">Job</span>
+                        <span class="info-value" id="job">Police Department</span>
+                    </div>
+                </div>
+
+                <div class="character_buttons">
+                    <div id="play31" class="start_button">
+                        Play
+                    </div>
+
+                    <div id="delete31" class="delete_button">
+                        Delete
+                    </div>
+                </div>
+            </div>
+
+            <div id="characterCreate" style="display: none;">
+                <div id="selamlar" class="character-text">????? ?????</div>
+                <div class="character-citizen">#?????</div>
+
+                <div class="character-information2">
+                    <input id="male" class="changegender" type="button" value="Male"  onclick="changeGender('male')"/>
+                    <input id="female" class="changegender" type="button" value="Female"  onclick="changeGender('female')"/>
+                    <div class="inputHeader">Name</div>
+                    <input type="text" id="fname" name="fname" placeholder="Ronnie">
+                    <div class="inputHeader">Last Name</div>
+                    <input type="text" id="sname" name="sname" placeholder="Wallace">
+                    <div class="inputHeader">Birthday</div>
+                    <input type="text" id="birthday" name="birthday" placeholder="October 16 2000">
+                    <div class="inputHeader">Nationality</div>
+                    <input type="text" id="nationalitys" name="nationality" placeholder="United States">
+
+                </div>
+
+                <div class="character_buttons">
+                    <div id="createcharacter" class="start_button">
+                        Create
+                    </div>
+
+                    <div class="delete_button disabled">
+                        Delete
+                    </div>
+                </div>
+            </div>
+
+            <div class="dots">
+                <span data-slot="1" class="dot selected"></span>
+                <span data-slot="2" class="dot"></span>
+                <span data-slot="3" class="dot"></span>
+                <span data-slot="4" class="dot"></span>
+            </div>
+
+            <!-- <div>
+                <div class="character-text">????? ?????</div>
+                <div class="character-citizen">#?????</div>
+            </div> -->
+
+        </div>
+    </div>
+
+
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js " type="text/javascript "></script>
+    <script src="script.js "></script>
+</body>
+
+</html>

@@ -1,0 +1,193 @@
+body {
+    user-select: none;
+}
+
+.container {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-right: 5%;
+    height: 90vh;
+    font-family: 'Lexend', sans-serif;
+}
+
+.character-background {
+    width: 380px;
+    height: 62%;
+    background-color: rgb(16, 16, 17);
+    border-radius: 15px;
+    -webkit-border-radius: 15px;
+    -moz-border-radius: 15px;
+    -ms-border-radius: 15px;
+    -o-border-radius: 15px;
+}
+
+.image_unkown {
+    position: relative;
+    max-width: 100%;
+    height: auto;
+    right: 20.5%;
+    bottom: 70px;
+}
+
+.character-text {
+    color: white;
+    margin-top: -70%;
+    margin-left: 42%;
+    font-size: 22px;
+}
+
+.character-citizen {
+    color: rgba(255, 255, 255, 0.592);
+    margin-left: 42.4%;
+    font-size: 12px;
+}
+
+.character-information {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    margin: 20px;
+    top: 50px;
+}
+
+.character-information2 {
+    position: relative;
+    display: block;
+    margin: 20px;
+    top: 20px;
+}
+
+.character-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.info-label {
+    color: rgba(255, 255, 255, 0.592);
+    font-size: 12px;
+}
+
+.info-value {
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.right {
+    text-align: right;
+}
+
+.start_button {
+    position: absolute;
+    color: white;
+    background-color: #4C4C54;
+    padding: 10px;
+    width: 200px;
+    left: 0;
+    right: -76%;
+    top: 67%;
+    margin: auto;
+    text-align: center;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.delete_button {
+    position: absolute;
+    color: white;
+    background-color: #4C4C54;
+    padding: 10px;
+    width: 100px;
+    left: 0;
+    right: -57.5%;
+    top: 67%;
+    margin: auto;
+    text-align: center;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.delete_button:hover {
+    opacity: 0.5;
+}
+
+.start_button:hover {
+    opacity: 0.5;
+}
+
+.dots {
+    position: absolute;
+    display: flex;
+    justify-content: center;
+    bottom: 35%;
+    right: 12.5%;
+}
+
+.dot {
+    width: 15px;
+    height: 15px;
+    background-color: #4C4C54;
+    border-radius: 30%;
+    margin: 0 5px;
+    cursor: pointer;
+    -webkit-border-radius: 30%;
+    -moz-border-radius: 30%;
+    -ms-border-radius: 30%;
+    -o-border-radius: 30%;
+    transition: 0.3s;
+}
+
+.dot.selected {
+    background-color: #D0D0D0;
+}
+
+.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.inputHeader {
+    color: white;
+}
+
+input[type=text],
+select {
+    width: 100%;
+    padding: 12px 10px;
+    margin: 8px 0;
+    display: inline-block;
+    border: none;
+    outline: none;
+    border-radius: 5px;
+    box-sizing: border-box;
+    background-color: #333333;
+    color: white;
+    font-family: 'Lexend', sans-serif;
+}
+
+input[type=button] {
+    position: relative;
+    padding:5px 15px;
+    background:#333333;
+    border:0 none;
+    outline: none;
+    cursor:pointer;
+    -webkit-border-radius: 5px;
+    border-radius: 5px;
+    left: 41%;
+    top: -30px;
+    color: white;
+    font-family: 'Lexend', sans-serif;
+    transition: 0.2s;
+    -webkit-transition: 0.2s;
+    -moz-transition: 0.2s;
+    -ms-transition: 0.2s;
+    -o-transition: 0.2s;
+}
+
+input[type=button]:hover {
+   opacity: 0.6;
+}
